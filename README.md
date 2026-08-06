@@ -61,8 +61,3 @@ production-port/
     configs/, scripts/  the divergence path (scaffold-prod.sh) + shared tooling
     check-parity.mjs    cross-template byte-identity guard
 ```
-
-The reference deployment (the template's own live proof):
-`spanning-template.jlelonmitchell.workers.dev` + Neon `spanning-template`.
-The playbook masters this distills from live at `~/workspace/epic-*.md`;
-`check-llmstxt-spec.mjs` pins both them and llmstxt.org.
