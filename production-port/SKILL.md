@@ -247,3 +247,11 @@ mechanism may graduate to gating: `references/docs-system.md`.
   second maintainer exists.
 - The full `npm run check` runs before every deploy by construction — it is the
   first thing in the deploy script, not a separate discipline.
+
+## Maintaining this skill
+
+The spanning template shares a byte-identical runtime set with the prototyping
+skill's template (`assets/check-parity.mjs` lists the pairs and verifies them —
+self-locating, run from anywhere). Any edit to a shared file lands in both
+copies in the same commit, and template fixes discovered in real apps flow up
+here so every future app inherits them.

@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 // Files that MUST stay byte-identical across the two templates — the shared
-// runtime the port relies on. Run from the skills repo root; wire into CI.
+// runtime the port relies on (ADR-0013). Self-locating: run it from anywhere
+// (`node <production-port skill dir>/assets/check-parity.mjs`); it resolves
+// the skills repo from its own path. Run after editing ANY shared file, in
+// either skill — fixes flow to both copies in the same commit.
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const PAIRS = [
 	["prototyping/assets/template/src/host.tsx", "production-port/assets/cloudflare-neon-prod-spanning-template/src/host.tsx"],
@@ -18,7 +25,7 @@ const PAIRS = [
 let bad = 0;
 for (const [a, b] of PAIRS) {
 	try {
-		if (readFileSync(a, "utf8") !== readFileSync(b, "utf8")) {
+		if (readFileSync(join(REPO, a), "utf8") !== readFileSync(join(REPO, b), "utf8")) {
 			console.error(`parity: DIVERGED — ${a} != ${b}`);
 			bad++;
 		}

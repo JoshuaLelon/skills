@@ -526,3 +526,12 @@ skip this, which is exactly why it gets skipped — treat it as a phase, not a f
 For everything past the strip — stack, database, environments, static analysis,
 docs, deploy — load the **production-port** skill; its entry criteria are this
 skill's exit state.
+
+## Maintaining this skill
+
+Several template files are BYTE-IDENTICAL with the production-port skill's
+spanning template (host, primitives, ScreenError, states page, now.ts,
+gate.mjs) — that identity is what makes the port's identical-skip work. After
+editing any of them, run
+`node <production-port skill dir>/assets/check-parity.mjs` and propagate the
+change to both copies in the same commit.
