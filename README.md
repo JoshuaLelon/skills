@@ -5,8 +5,6 @@ prototype, and the prototype becomes a deployed Cloudflare + Neon app — with
 the judgment work confined to design dialogue and a feature-mapping loop, and
 everything on either side of it scripted, gated, and execution-verified.
 
-Distilled from the pantogen reboot and its port; built 2026-08-06.
-
 ## Setup
 
 ```sh
