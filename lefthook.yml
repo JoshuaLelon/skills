@@ -1,42 +1,10 @@
-# EXAMPLE USAGE:
+# Deliberately empty — a guard, not a config.
 #
-#   Refer for explanation to following link:
-#   https://lefthook.dev/configuration/
-#
-# pre-push:
-#   jobs:
-#     - name: packages audit
-#       tags:
-#         - frontend
-#         - security
-#       run: yarn audit
-#
-#     - name: gems audit
-#       tags:
-#         - backend
-#         - security
-#       run: bundle audit
-#
-# pre-commit:
-#   parallel: true
-#   jobs:
-#     - run: yarn eslint {staged_files}
-#       glob: "*.{js,ts,jsx,tsx}"
-#
-#     - name: rubocop
-#       glob: "*.rb"
-#       exclude:
-#         - config/application.rb
-#         - config/routes.rb
-#       run: bundle exec rubocop --force-exclusion -- {all_files}
-#
-#     - name: govet
-#       files: git ls-files -m
-#       glob: "*.go"
-#       run: go vet -- {files}
-#
-#     - script: "hello.js"
-#       runner: node
-#
-#     - script: "hello.go"
-#       runner: go run
+# The skills repo has no hooks. This file exists because the spanning
+# template's `npm install` (lefthook is one of its devDependencies) triggers
+# lefthook's postinstall, which walks up to the nearest .git — this repo —
+# installs a marker hook, and would regenerate an example-stub config here if
+# this file were absent. An explicit empty config beats a recurring mystery
+# stub. The REAL lefthook configs are:
+#   production-port/assets/configs/lefthook.yml                      (skill asset)
+#   production-port/assets/cloudflare-neon-prod-spanning-template/…  (template's own)
