@@ -11,8 +11,8 @@ row; never by drifting.
 | decision | exists because of | and is what makes … work |
 | --- | --- | --- |
 | owner on every row (0010) | per-user product model (0004-style) | test isolation without resets; `fullyParallel` as the isolation regression test (0006) |
-| `(owner, ref)` composite keys, `ref` = `type:kebab-slug` (0010) | the prototype's id discipline (fixture rule 4) | fixture rows → seed rows 1:1; the fidelity audit's node pairing |
-| `now` as an argument (0005) | replay equality in the store (0007) | flow-test clock pinning; the audit's determinism; `ORDER BY at` stability |
+| `(owner, ref)` composite keys, `ref` = `type:kebab-slug` (0010) | the prototype's id discipline (fixture rule 4) | fixture rows → seed rows 1:1 |
+| `now` as an argument (0005) | replay equality in the store (0007) | flow-test clock pinning; `ORDER BY at` stability |
 | effects as data + one host (0007) | the port must be a copy | replay equality; the dev invariants; strip-harness knowing where everything lives |
 | loaders as the seam (0003) | accessors in the prototype | mock→Postgres swap with no screen changes; per-route error boundaries (0008) |
 | sessions in cookies (0004) | Workers request model; no localStorage | the owner column having a trustworthy source; `requireOwner` as one door |

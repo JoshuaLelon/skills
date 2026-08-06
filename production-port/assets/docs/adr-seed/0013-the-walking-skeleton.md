@@ -38,8 +38,8 @@ states page, gate — `check-parity.mjs` in the skills repo enforces it), which
 is what reduces the screen port to a clientLoader→loader rename.
 
 Fixes discovered in any app flow UP to the skill's template copy, so every
-future app inherits them. The prototype repo survives untouched as the
-fidelity audit's reference side (its `prototype` tag). Template rot is caught
+future app inherits them. The prototype repo survives untouched and
+retires at port completion (its `prototype` tag stays citable). Template rot is caught
 by its own CI: `npm run check` green in a fresh copy is the port's
 precondition, and a red check before any port work is a template bug, not an
 app bug.

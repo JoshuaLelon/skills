@@ -24,8 +24,8 @@ Everywhere else: decide, state the decision, continue.
 2. **Phase 3** — genuine forks in the docs, asked in batches, each with a
    recommendation attached.
 3. **Phase 5** — flow approval. Only the user approves a flow; never lock one unasked.
-4. **Port audit** — anything graded *reconceived*. The app may be right and the
-   prototype stale; only the owner settles it.
+4. **The port's mapping loop** — any feature you would *reconceive* rather than
+   map. The app may be right and the prototype stale; only the owner settles it.
 
 **Scaling down:** for a small ask (one screen, one control), Phases 1–3 compress to a
 single message — the facts found, the collapsed object, the questions with
@@ -518,10 +518,14 @@ production toolify's biome pass owns formatting. `npm run gate &&
 npx playwright test` must be green before the strip commit — the flow tests
 survive by design, because they never touched the harness.
 
-Then **audit the port against the prototype, once, at the moment of porting** —
-load `references/port-audit.md`. The prototype is the specification and the distance
-to it is the only number that says whether the port succeeded. Nothing fails when you
-skip this, which is exactly why it gets skipped — treat it as a phase, not a favour.
+The audit a divergent port once needed is **dissolved by construction**: the
+flows carry and must pass, the screens move rather than being re-derived, and
+`port:status` refuses to finish with anything unmapped. Two residues remain
+manual: diff the app's `routes.ts` against the prototype's (a route only in the
+app is built-but-never-designed — governance, not cleanup), and **walk the
+motion by hand** — interactivity is what a prototype demonstrates best and what
+tests under-sample. Never pin the app to itself with visual baselines and call
+it fidelity: baselines catch change, not wrongness.
 
 For everything past the strip — stack, database, environments, static analysis,
 docs, deploy — load the **production-port** skill; its entry criteria are this

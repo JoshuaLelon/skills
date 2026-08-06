@@ -39,8 +39,8 @@ superseding ADR + a §2 row — never a blank page and never drift.
    + Neon (the proven path); confirm, or prune the seed: **pruning = deleting
    the inapplicable ADR files AND their gates in the same commit** (verify-gates'
    coverage pre-pass keeps that honest); numbers are never reused.
-2. **Anything the fidelity audit grades *reconceived*** — the app may be right
-   and the prototype stale; only the owner settles it.
+2. **Anything you would *reconceive* rather than map during the port** — the
+   app may be right and the prototype stale; only the owner settles it.
 3. **Going live** — first prod deploy, first prod data, DNS. And separately,
    **going multi-tenant**: shipping to users beyond the author re-opens
    ADR-0001's storage fork (DO-per-user vs hardened owner-scoping) as a
@@ -207,13 +207,16 @@ and their determinism rules — the clock ladder, owner-scoped isolation instead
 of DB resets, the two-trigger rule for new e2e, vitest project split — in
 `references/testing.md`.
 
-## Phase 6 — Fidelity audit
+## Phase 6 — Post-port review (the audit, dissolved)
 
-The prototype is the specification; audit the shipped app against it state by
-state, once, now. Method is the prototyping skill's
-`references/port-audit.md`; tooling and the notes-driven recipe generation that
-makes it cheap here: `references/fidelity-audit.md`. Expect it to find real
-bugs — reading the app against its spec for the first time always does.
+The screenshot-diff audit pantogen needed existed to measure prototype↔app
+divergence that this system prevents from opening: *absent* is caught by
+`port:status`, *broken* by the carried flows, *dressed-differently* is
+impossible (same files), *reconceived* is checkpoint 2. Two manual residues:
+**diff `routes.ts` against the prototype's** — a route only in the app is
+built-but-never-designed, which is governance to decide, not drift to measure —
+and **walk the motion by hand**, the one thing the tests under-sample. The
+prototype repo then retires (keep it archived; its tag stays citable).
 
 ## Phase 7 — Docs system (minimal)
 
