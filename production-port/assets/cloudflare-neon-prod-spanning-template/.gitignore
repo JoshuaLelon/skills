@@ -1,0 +1,7 @@
+node_modules
+.dev.vars
+build
+.react-router
+test-results
+playwright-report
+.wrangler

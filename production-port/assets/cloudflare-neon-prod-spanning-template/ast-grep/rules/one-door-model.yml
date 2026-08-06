@@ -1,0 +1,17 @@
+# Twin: one-door-model-tsx.yml. ADR-0012: the model SDK is reached through one
+# adapter module modeling OUR capability (generate/extract), never imported
+# directly — provider request/response shapes must not leak into features.
+id: one-door-model
+language: TypeScript
+severity: error
+message: >-
+  '@anthropic-ai/sdk' is imported only by the adapter in src/lib/ai/. Features
+  call the capability (TextGenerator-style), not the provider — provider DTOs
+  and stop-reasons must not leak past the adapter. (ADR-0012)
+ignores:
+  - "src/lib/ai/**"
+rule:
+  kind: import_statement
+  has:
+    kind: string
+    regex: "@anthropic-ai/sdk"

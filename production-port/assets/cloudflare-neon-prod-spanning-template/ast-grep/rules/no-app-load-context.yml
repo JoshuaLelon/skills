@@ -1,0 +1,11 @@
+# Twin: no-app-load-context-tsx.yml. Identifier pattern, so quote-exactness
+# doesn't apply here.
+id: no-app-load-context
+language: TypeScript
+severity: error
+message: >-
+  AppLoadContext was removed in React Router 8 — Cloudflare's starter templates
+  still ship the RR7 form, which builds clean and 500s at runtime. Use
+  RouterContextProvider + createContext().
+rule:
+  pattern: AppLoadContext

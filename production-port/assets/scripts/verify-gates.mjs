@@ -126,7 +126,7 @@ const MUTATIONS = [
 		gate: "depcruise: no-db-in-view",
 		files: {
 			"src/db/__mut3__.ts": "export const DB = 1\n",
-			"src/screens/__mut2__.ts": "import { DB } from '../db/__mut3__'\nexport const m = DB\n",
+			"src/components/__mut3__.tsx": "import { DB } from '../db/__mut3__'\nexport const m = DB\nexport const STATES = []\n",
 		},
 		cmd: "npx depcruise src --config .dependency-cruiser.cjs",
 		expect: "no-db-in-view",

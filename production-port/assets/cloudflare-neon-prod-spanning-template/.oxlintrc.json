@@ -11,16 +11,9 @@
 		"no-underscore-dangle": [
 			"warn",
 			{
-				"allow": [
-					"_fx"
-				]
+				"allow": ["_fx"]
 			}
 		]
 	},
-	"ignorePatterns": [
-		"dist/**",
-		"build/**",
-		"scripts/**",
-		"node_modules/**"
-	]
+	"ignorePatterns": ["dist/**", "build/**", "scripts/**", "node_modules/**"]
 }

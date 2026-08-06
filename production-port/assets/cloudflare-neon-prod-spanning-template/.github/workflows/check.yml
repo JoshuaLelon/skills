@@ -1,0 +1,31 @@
+# The cheap half of `npm run check`, honestly scoped: no DB, no e2e — and it
+# says so rather than pretending coverage. Deploys stay scripted and manual.
+name: check
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # bump alongside package.json engines when set
+          cache: npm
+      - run: npm ci
+      - run: node scripts/docs-check.mjs && node scripts/docs-index.mjs --check
+      - run: node scripts/check-config-traps.mjs
+      - run: npm run lint
+      - run: npm run lint:arch
+      - run: npm run lint:dead
+      # gate includes `react-router typegen` post-port (Phase 1 rewires it),
+      # so stale generated route types fail the build here.
+      - run: npm run gate
+      - run: npm run test
+      - run: npm run verify:gates
+      # test:int / e2e need Postgres + browsers — run locally via `npm run
+      # check` before every deploy; add a service container here when CI
+      # coverage earns its keep.

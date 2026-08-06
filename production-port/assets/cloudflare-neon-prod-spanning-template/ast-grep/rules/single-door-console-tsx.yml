@@ -1,0 +1,14 @@
+id: single-door-console-tsx
+language: Tsx
+severity: error
+message: >-
+  Server logging goes through lib/log (one flat JSON object per call — Workers
+  Logs indexes every field). Raw console.* is an unqueryable string. (ADR-0009)
+files:
+  - "src/**"
+ignores:
+  - "src/lib/log.ts"
+  - "src/host.tsx"
+  - "src/walkthrough.tsx"
+rule:
+  pattern: console.$METHOD($$$)

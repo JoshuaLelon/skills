@@ -163,9 +163,11 @@ node scripts/docs-index.mjs
 
 # Lefthook supersedes the prototype's hand-rolled hook — its lefthook.yml
 # includes everything the old .githooks/pre-commit ran (gate + flow suite).
-git config --unset-all --local core.hooksPath 2>/dev/null || true
-rm -rf .githooks
-npx lefthook install
+if [ -z "$SKIP_LEFTHOOK" ]; then
+  git config --unset-all --local core.hooksPath 2>/dev/null || true
+  rm -rf .githooks
+  npx lefthook install
+fi
 
 echo "scaffold-prod: proving every gate can fire…"
 node scripts/verify-gates.mjs

@@ -25,14 +25,6 @@
 		}
 	},
 	"files": {
-		"includes": [
-			"src/**",
-			"e2e/**",
-			"scripts/**",
-			"*.json",
-			"*.ts",
-			"!**/*.d.ts",
-			"!drizzle/**"
-		]
+		"includes": ["src/**", "e2e/**", "scripts/**", "*.json", "*.ts", "!**/*.d.ts", "!drizzle"]
 	}
 }

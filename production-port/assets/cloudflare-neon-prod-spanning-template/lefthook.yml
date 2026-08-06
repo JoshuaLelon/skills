@@ -1,0 +1,27 @@
+# Pre-commit gate. The point is nobody has to remember the rules — and the
+# rules themselves are proven live by `npm run verify:gates` (a rule that
+# cannot fail is decoration). Staged-file scoping where the tool supports it;
+# whole-tree where it doesn't.
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{ts,tsx,json}"
+      run: npx biome check --no-errors-on-unmatched {staged_files}
+    oxlint:
+      glob: "*.{ts,tsx}"
+      run: npx oxlint {staged_files}
+    ast-grep:
+      glob: "*.{ts,tsx}"
+      run: npx ast-grep scan
+    architecture:
+      glob: "*.{ts,tsx}"
+      run: npx depcruise src --config .dependency-cruiser.cjs
+    prototype-gate:
+      run: npm run gate
+    docs:
+      run: node scripts/docs-check.mjs
+    config-traps:
+      run: node scripts/check-config-traps.mjs
+    flows:
+      run: npx playwright test --reporter=line --pass-with-no-tests

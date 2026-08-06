@@ -1,0 +1,15 @@
+# THE MANIFEST RULE: every variable the app reads is listed here, set or not.
+# cp .dev.vars.example .dev.vars  (gitignored; never deploys)
+
+# Local Postgres (docker compose). Unset: server 500s at first query.
+DATABASE_URL=postgres://postgres:local@127.0.0.1:55433/app
+
+# Session cookie signing. Unset: auth refuses to start.
+SESSION_SECRET=dev-only-not-a-secret
+
+# 'development' | 'demo' | 'production'. Unset: treated as production (fail closed).
+ENVIRONMENT=development
+
+# Anthropic key — OPTIONAL: absent, lib/ai uses the echo generator (the seam
+# still exercises); present, real calls flow through the one door.
+ANTHROPIC_API_KEY=

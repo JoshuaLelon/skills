@@ -1,0 +1,14 @@
+# Twin: no-inline-promise-in-use-ts.yml. If a call inside use() genuinely
+# returns a cached/memoized promise, suppress with an ast-grep-ignore comment
+# and say why — that's the deliberate exception path.
+id: no-inline-promise-in-use
+language: Tsx
+severity: error
+message: >-
+  use(promise) is not where you CREATE the promise — a call expression inside
+  use() makes a new promise every render and suspends in an infinite refetch
+  loop. Create it outside render (loader, cache, state) and pass it in.
+files:
+  - "src/**"
+rule:
+  pattern: use($FN($$$))

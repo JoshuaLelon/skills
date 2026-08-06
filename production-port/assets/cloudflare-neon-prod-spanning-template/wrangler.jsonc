@@ -1,0 +1,20 @@
+// The comments ARE the config rules (production-port skill).
+{
+  "name": "spanning-template",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // ADR-0009: platform-native observability is the whole logging backend.
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "upload_source_maps": true,
+  // ADR-0001: Hyperdrive with the DIRECT (non-pooler) Neon string — Hyperdrive
+  // does the pooling. Local dev + tests use DATABASE_URL from .dev.vars instead
+  // (db/client.server.ts falls back when the binding is absent locally).
+  // hyperdrive binding disabled for local diagnosis
+
+  // vars does NOT inherit into environments — repeat every var per env block.
+  "vars": { "ENVIRONMENT": "development" },
+  "env": {
+    "demo": { "name": "spanning-template-demo", "vars": { "ENVIRONMENT": "demo" } }
+  }
+}

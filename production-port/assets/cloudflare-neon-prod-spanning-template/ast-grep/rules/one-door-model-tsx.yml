@@ -1,0 +1,14 @@
+id: one-door-model-tsx
+language: Tsx
+severity: error
+message: >-
+  '@anthropic-ai/sdk' is imported only by the adapter in src/lib/ai/. Features
+  call the capability (TextGenerator-style), not the provider — provider DTOs
+  and stop-reasons must not leak past the adapter. (ADR-0012)
+ignores:
+  - "src/lib/ai/**"
+rule:
+  kind: import_statement
+  has:
+    kind: string
+    regex: "@anthropic-ai/sdk"

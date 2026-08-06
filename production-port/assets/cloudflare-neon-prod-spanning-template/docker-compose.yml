@@ -1,0 +1,17 @@
+# Local Postgres. THE PIN IS THE POINT: image tag pinned to exactly what the
+# hosted database (Neon) serves — postgres major AND extension version — a
+# floating tag once drifted majors and nothing noticed until behavior differed.
+# Verify against Neon before changing: SELECT version(); \dx
+services:
+  db:
+    image: pgvector/pgvector:0.8.1-pg18 # pin to your Neon project on adoption
+    ports:
+      - "55433:5432"
+    environment:
+      POSTGRES_PASSWORD: local
+      POSTGRES_DB: app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15

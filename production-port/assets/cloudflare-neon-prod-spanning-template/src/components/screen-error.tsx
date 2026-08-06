@@ -12,21 +12,21 @@
 import { isRouteErrorResponse, useRevalidator, useRouteError } from 'react-router'
 
 export function ScreenError() {
-  const error = useRouteError()
-  const { revalidate, state } = useRevalidator()
+	const error = useRouteError()
+	const { revalidate, state } = useRevalidator()
 
-  const known = isRouteErrorResponse(error)
-  const title = known ? `${error.status} — ${error.statusText || 'Error'}` : 'Something broke'
-  const detail = known ? String(error.data ?? '') : 'The rest of the app is still running.'
+	const known = isRouteErrorResponse(error)
+	const title = known ? `${error.status} — ${error.statusText || 'Error'}` : 'Something broke'
+	const detail = known ? String(error.data ?? '') : 'The rest of the app is still running.'
 
-  return (
-    <section role="alert" aria-label="Screen error">
-      <h2>{title}</h2>
-      <p>{detail}</p>
-      <button type="button" onClick={() => revalidate()} disabled={state === 'loading'}>
-        {state === 'loading' ? 'Retrying…' : 'Try again'}
-      </button>
-      {import.meta.env.DEV && error instanceof Error && <pre>{error.stack}</pre>}
-    </section>
-  )
+	return (
+		<section role="alert" aria-label="Screen error">
+			<h2>{title}</h2>
+			<p>{detail}</p>
+			<button type="button" onClick={() => revalidate()} disabled={state === 'loading'}>
+				{state === 'loading' ? 'Retrying…' : 'Try again'}
+			</button>
+			{import.meta.env.DEV && error instanceof Error && <pre>{error.stack}</pre>}
+		</section>
+	)
 }

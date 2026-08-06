@@ -1,0 +1,14 @@
+# The TypeScript-grammar twin of no-react-legacy — the grammars are mutually
+# exclusive, so without this twin a hook written in a .ts file goes unscanned.
+id: no-react-legacy-ts
+language: TypeScript
+severity: error
+message: >-
+  React 19: `ref` is an ordinary prop (forwardRef is dead) and context is read
+  with `use(Ctx)`. Zero @deprecated tags upstream — only this rule catches it.
+files:
+  - "src/**"
+rule:
+  any:
+    - pattern: forwardRef($$$)
+    - pattern: useContext($$$)

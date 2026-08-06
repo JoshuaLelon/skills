@@ -1,0 +1,28 @@
+# cloudflare-neon-prod-spanning-template
+
+> [FILL: one-paragraph summary of what this app is — llms.txt is the entry point for an agent with no other context.]
+
+## Start here
+
+- [AGENTS.md](AGENTS.md): AGENTS.md — [FILL: app name]
+
+## Conventions — how we work
+
+- [documentation.md](docs/conventions/documentation.md): Documentation
+
+## Decisions — immutable; never edit, only supersede
+
+- [0001-cloudflare-for-everything-that-runs-neon-for-eve.md](docs/decisions/0001-cloudflare-for-everything-that-runs-neon-for-eve.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0002-drizzle-not-prisma.md](docs/decisions/0002-drizzle-not-prisma.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0003-react-router-8-framework-mode.md](docs/decisions/0003-react-router-8-framework-mode.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0004-sessions-in-http-only-cookies-auth-checks-server.md](docs/decisions/0004-sessions-in-http-only-cookies-auth-checks-server.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0005-time-is-an-argument-test-time-comes-from-data-fi.md](docs/decisions/0005-time-is-an-argument-test-time-comes-from-data-fi.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0006-tests-pin-confirmed-flows-four-levels-by-environ.md](docs/decisions/0006-tests-pin-confirmed-flows-four-levels-by-environ.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0007-one-reducer-effects-as-data-the-host-drains.md](docs/decisions/0007-one-reducer-effects-as-data-the-host-drains.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0008-errors-two-tier-rr8-boundaries-a-typed-taxonomy-.md](docs/decisions/0008-errors-two-tier-rr8-boundaries-a-typed-taxonomy-.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0009-logging-one-door-one-flat-json-object-platform-i.md](docs/decisions/0009-logging-one-door-one-flat-json-object-platform-i.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0010-schema-conventions.md](docs/decisions/0010-schema-conventions.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md](docs/decisions/0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
+- [0012-seams-decided-in-advance.md](docs/decisions/0012-seams-decided-in-advance.md) · **L3**: which boundaries every app on this stack draws before writing features, which it deliberately does not, and how each is enforced. The governing principle and per-seam map live in the production-port skill's `references/architecture.md`.
+- [README.md](docs/decisions/README.md): Decisions (ADRs)
+- [adr-template.md](docs/decisions/adr-template.md): [FILL: what this decides — and the neighbouring decision it does not, with its ADR number]
