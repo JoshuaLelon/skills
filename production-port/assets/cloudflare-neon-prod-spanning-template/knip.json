@@ -9,6 +9,20 @@
 		"e2e/**/*.spec.ts",
 		"scripts/*.mjs"
 	],
-	"project": ["src/**", "e2e/**", "scripts/**"],
-	"include": ["files", "dependencies", "exports", "types", "duplicates"]
+	"project": [
+		"src/**",
+		"e2e/**",
+		"scripts/**"
+	],
+	"include": [
+		"files",
+		"dependencies",
+		"exports",
+		"types",
+		"duplicates"
+	],
+	"ignore": [
+		"src/_port/**",
+		"e2e/_port/**"
+	]
 }

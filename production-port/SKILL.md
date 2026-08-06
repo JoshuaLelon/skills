@@ -25,9 +25,9 @@ worked was an npm script. When you find yourself writing a warning, write a
 script or a gate instead.
 
 **The architecture is pre-decided.** The scaffold copies an accepted ADR seed
-(0001–0012: CF+Neon+Hyperdrive, Drizzle, RR8, sessions, injectable clock,
+(0001–0013: CF+Neon+Hyperdrive, Drizzle, RR8, sessions, injectable clock,
 test levels, effects-as-data, the error taxonomy, single-door logging, schema
-conventions, cheap-half CI, pre-drawn seams) plus the code those ADRs promise (`lib/log.ts`,
+conventions, cheap-half CI, pre-drawn seams, the walking skeleton) plus the code those ADRs promise (`lib/log.ts`,
 `lib/errors.ts`, `<ScreenError>`). `references/architecture.md` is the
 coordination map — every decision names what it exists for and what depends on
 it. The architecture conversation is "where do you diverge?", answered as a
@@ -49,55 +49,66 @@ superseding ADR + a §2 row — never a blank page and never drift.
    before data.** Deploy new code to every consumer before migrating shared
    data, or old code spawns malformed rows against the new shape.
 
-## Phase 1 — Strip and port
+## Phase 1 — Start from the skeleton; port into it
 
-**The port is an IN-PLACE transformation of the prototype's repo** — same git
-history, same remote. This is load-bearing, not stylistic: the fidelity audit
-drives the `prototype` tag via a worktree, scaffold-prod's guards preserve
-prototype-era files, and the hook/scripts history carries. Never a fresh repo.
+**The app begins as a copy of the spanning template** (ADR-0013) — a complete,
+execution-verified application, not a scaffold: `npm run check` exits 0 in it,
+and it has deployed live (worker → Hyperdrive → Neon, wide events in Workers
+Logs). Every convention has a running exemplar (`note`) one file away. The
+prototype repo is NOT transformed — it survives untouched as the fidelity
+audit's reference side (its `prototype` tag).
 
-**Verify (don't redo) the prototyping skill's exit acts:** the `prototype` tag
-exists and the strip commit landed — both are prototyping Phase 7's job. If
-missing, do them now, once.
-
-**Porting mode:** between here and the end of Phase 3 the tree is legitimately
-mid-transformation — commit with `--no-verify` (or `LEFTHOOK=0`), saying so in
-the message. **The transition's exit criterion is `npm run check` green**;
-loosening a gate to get there is the one forbidden move.
-
-### The port recipe (Vite → React Router 8), file by file
-
-| fate | files |
-| --- | --- |
-| **dies** | `src/main.tsx`, `src/App.tsx`, `src/App.css`, `index.html`, `vite.config.ts` (RR8's `@react-router/dev` owns the build) |
-| **born** | `react-router.config.ts` (`appDirectory: 'src'`, `ssr: true`); `src/routes.ts` (explicit routes — include `/__states` → `states.tsx`, which has a default export for exactly this); `src/root.tsx` (layout + root ErrorBoundary + store provider); `src/entry.client.tsx` — **must contain `<StrictMode>`**, the gate's strict-mode rule watches both entry names; the worker entry; `wrangler.jsonc` copied from `<skill-dir>/assets/configs/wrangler-template.jsonc` |
-| **carries verbatim** | `docs/` (level docs continue, never restart); `e2e/` + `helpers.ts`; `src/fixtures/` — `now.ts`, `entities/`, `view/` (view stays: it is UI option data; "becomes nothing" means *no table*); `src/store/`; `src/components/`; `src/screens/`; `src/states.tsx`; `scripts/gate.mjs` + `strip-harness.mjs` |
-| **carries edited** | `src/host.tsx` — **client-only**: the module-level store is a browser singleton; mount its provider from `root.tsx`'s client side, never import it in server-only code. `fixtures/accessors.ts` waits here — accessors become loader queries with the same signatures per-screen in Phase 3, not now |
-| **rewired** | `package.json`: deps via `node <skill-dir>/assets/scripts/export-stack.mjs --from ~/workspace/pantogen --apply` (deliberately reaching one phase ahead — the port needs the dep set before Phase 2 ships the script into the repo); `dev`/`build` → `react-router dev`/`build` (Playwright's `webServer: npm run dev` then keeps working untouched); `gate` → `"react-router typegen && node scripts/gate.mjs && tsc -b"` so generated route types exist before every typecheck; **re-establish Tailwind** (`tailwindcss` + `@tailwindcss/vite` in the RR8 vite config — the prototype scaffold wired it and two carried gate rules presuppose it) |
-
-**Definition of done for Phase 1:** the app boots under `npm run dev`, and
-`npm run gate && npx playwright test` is green — the locked flows passing
-against the RR8 app is the port's proof. The gate now **fails on an empty
-scan**, so a moved tree screams instead of greening.
-
-The port history's lesson: the real work of a port is *un-doing prototype
-shortcuts* — but this prototype was denied the three expensive ones
-(host-mutated effects, dispatch-based navigation, module-level globals), so the
-port is the table above and little else. The store crosses unedited if replay
-equality held.
-
-## Phase 2 — Toolify (deterministic)
+**Verify the prototype's exit acts** (prototyping Phase 7's job, not yours):
+the `prototype` tag exists, the strip commit landed. The port script refuses
+without them.
 
 ```sh
-sh <skill-dir>/assets/scaffold-prod.sh
+cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template <app>
+cd <app> && npm install && git init && npx lefthook install
+cp .dev.vars.example .dev.vars
+npm run db:up && npm run db:migrate
+npm run check          # GREEN BEFORE ANY PORT WORK — red here is template rot:
+                       # fix it in the skill's copy, every future app inherits it
+node scripts/port-from-prototype.mjs --from <prototype-repo>
 ```
 
-Stack-agnostic: layers the production tooling onto the ported repo. It copies
-the configs and scripts below, installs biome + oxlint + ast-grep +
-dependency-cruiser + knip + lefthook, runs a one-time `biome check --write .`
-(also erasing strip-harness's blank lines), replaces the prototype's hand-rolled
-hook with lefthook, generates `llms.txt`, and ends by running `verify:gates` —
-it refuses to call itself done until every gate has proven it can fail.
+The script carries the portable set deterministically: level docs and
+`src/fixtures/` land in place (they continue, never restart); store, screens,
+components, and flows land in **`_port/` staging**, which is excluded from
+tsc, the gate, knip, biome, and playwright — so **check stays green throughout
+the port**; there is no red-hooks transition to survive.
+
+**The mapping loop**, one prototype feature at a time, each onto the
+exemplar's worked pattern: fixture interfaces → schema (the notes table shows
+the shape) → seeder → reducer cases merged into the template's store (the
+template host stays — it is the SSR-adapted one) → each screen rebuilt on the
+notes-screen pattern (loader→queries, `guarded()`, primitives compose) and
+routed → each flow test moved from staging and re-pointed. Delete from
+`_port/` as you map; delete the note exemplar once its pattern has a real
+follower.
+
+**Definition of done — mechanically checked by `npm run port:status`:**
+staging empty, exemplar deleted, and the prototype's locked flows green
+against this app. That last one is the port's proof.
+
+The port history's lesson still holds: the real work of a port is un-doing
+prototype shortcuts, and this prototype was denied the expensive ones — so the
+port is the mapping loop and nothing else. The store crosses as cases, not as
+plumbing, because the plumbing is already here, proven.
+
+## Phase 2 — Toolify
+
+**On the template path this phase is already done** — the skeleton ships every
+config, script, gate, doc, and hook below, pre-verified. What remains here:
+re-run `npm run verify:gates` after any rule you add, stamp the stack table
+(`node scripts/export-stack.mjs --stamp`), and work `npm run docs:fillins`
+with the user.
+
+For a stack that diverged from the template (checkpoint 1),
+`sh <skill-dir>/assets/scaffold-prod.sh` remains the à-la-carte layering: it
+copies the configs and scripts below, installs the toolchain, formats once,
+installs lefthook, generates `llms.txt`, and ends by running `verify:gates` —
+refusing to finish until every gate has proven it can fail.
 
 | layer | tool | why it earned its place |
 | --- | --- | --- |
@@ -140,23 +151,12 @@ The fixture was designed to become this: interfaces → drizzle schema (they are
 already the DTOs), entity arrays → seed rows, accessors → queries with the same
 signatures.
 
-**Deterministic setup first** — templates ship with this skill:
-
-```sh
-cp <skill-dir>/assets/configs/docker-compose.yml .    # the image pin IS the point
-cp <skill-dir>/assets/configs/drizzle.config.ts .
-cp <skill-dir>/assets/template-prod/src/db/seed.ts src/db/seed.ts
-npm i drizzle-orm pg && npm i -D drizzle-kit @types/pg
-npm pkg set \
-  scripts.db:up="docker compose up -d --wait" \
-  scripts.db:down="docker compose down" \
-  scripts.db:migrate="drizzle-kit migrate" \
-  scripts.db:reset="docker compose down -v && npm run db:up && npm run db:migrate"
-```
-
-Then the judgment half — the schema from fixture interfaces per ADR-0010,
-`seedFixture` filled from the entity arrays, and the per-screen
-accessor→loader swap (same signatures; ADR-0012's seam table).
+The template ships the whole apparatus (compose with the pinned image,
+drizzle config, the `db:*` scripts, a working `seedFixture`, migration 0000
+with the exemplar tables). The judgment half: extend `src/db/schema.ts` from
+the fixture interfaces per ADR-0010 (the notes table is the worked example),
+extend `seedFixture` from the entity arrays, `drizzle-kit generate` per change,
+and the per-screen accessor→loader swap (same signatures; ADR-0012).
 
 - **One seeder, shared.** Tests and production onboarding call the same
   `seedFixture(db, owner, now)` — `now` a required parameter, everything

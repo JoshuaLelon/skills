@@ -129,7 +129,7 @@ const FILE_RULES = [
 ];
 
 // ---------------------------------------------------------------------------
-const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "test-results", "playwright-report"]);
+const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "test-results", "playwright-report", "_port"]);
 
 function* walk(dir, rel = "") {
 	let entries;

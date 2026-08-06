@@ -25,9 +25,9 @@ adapting at first use (~350 lines, no project knowledge):
 The bespoke half was the two hand-authored recipe graphs — the exact thing its
 README says blocked generalization.
 
-**The reference build is the `prototype` git tag** — strip-harness deleted the
-walkthrough and `notes.ts` from the ported tree, so the audit checks out the
-tag (or a worktree of it) to run the prototype side and read the notes.
+**The reference build is the prototype REPO at its `prototype` tag** — the app
+started from the template (ADR-0013), so the prototype repo survives whole;
+check out its tag to run the prototype side and read the notes.
 
 ## Why it's cheap now: generate the recipes
 
