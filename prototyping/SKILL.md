@@ -230,6 +230,11 @@ is not view** — move it to the store, with tests, on day one.
 screen. Adopt vs build:
 
 ```
+**Run this test BEFORE building any control the user asks for** — adopt first,
+build only on a "no". Adopted controls arrive via `npx shadcn add <thing>`
+(shadcn supports React Router; the scaffold pre-wired its preflight), then get
+wrapped (below) — the `raw-registry-import` gate enforces the wrap.
+
 Would a stranger recognise this control by name?
 ├── Yes (dialog, toast, tabs, popover, combobox, checkbox, tree-with-dnd)
 │     → adopt: npx shadcn add <thing>   (CLI resolves any registry, e.g. @magicui/…)

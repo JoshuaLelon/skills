@@ -64,7 +64,9 @@ without them.
 
 ```sh
 cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template <app>
-cd <app> && npm install && git init && npx lefthook install
+cd <app> && node scripts/rename-app.mjs <app>   # kills every template identity;
+                                               # config-traps' sentinel check fails until run
+npm install && git init && npx lefthook install
 cp .dev.vars.example .dev.vars
 npm run db:up && npm run db:migrate
 npm run check          # GREEN BEFORE ANY PORT WORK — red here is template rot:

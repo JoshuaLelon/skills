@@ -11,7 +11,8 @@ verified**: `npm run check` exits 0, and the template has deployed live
 
 ```sh
 cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template my-app
-cd my-app && npm install && git init && npx lefthook install
+cd my-app && node scripts/rename-app.mjs my-app   # config-traps fails until this runs
+npm install && git init && npx lefthook install
 cp .dev.vars.example .dev.vars
 npm run db:up && npm run db:migrate && npm run check   # green before you touch anything
 node scripts/port-from-prototype.mjs --from ../my-prototype

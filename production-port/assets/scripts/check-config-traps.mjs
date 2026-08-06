@@ -121,6 +121,24 @@ if (wranglerRaw) {
 	}
 }
 
+// 7. Template-identity sentinels — the mechanical "what must be replaced"
+// checklist for apps started from the spanning template. rename-app.mjs
+// clears every one of these; a survivor means it was skipped.
+const SENTINELS = [
+	["package.json", '"name": "cloudflare-neon-prod-spanning-template"', "package.json still carries the template name — run: node scripts/rename-app.mjs <app>"],
+	["wrangler.jsonc", '"spanning-template"', "wrangler still names the TEMPLATE's worker — deploying would overwrite the reference deployment (rename-app.mjs)"],
+	["wrangler.jsonc", "0ac30af414fe476c93a4c24b54f951c4", "wrangler still carries the template's own Hyperdrive id — create your own (environments.md)"],
+	["llms.txt", "# cloudflare-neon-prod-spanning-template", "llms.txt head still describes the template (rename-app.mjs, then docs:index)"],
+];
+// Skipped only in the template's own home (the skills repo) — everywhere
+// else a surviving sentinel means rename-app.mjs was skipped.
+const IS_TEMPLATE_HOME = process.cwd().includes("skills/production-port/assets/cloudflare-neon-prod-spanning-template");
+if (!IS_TEMPLATE_HOME) {
+	for (const [file, needle, msg] of SENTINELS) {
+		if (read(file)?.includes(needle)) problems.push(msg);
+	}
+}
+
 if (problems.length) {
 	console.error(`config-traps:\n  ${problems.join("\n  ")}`);
 	process.exit(1);
