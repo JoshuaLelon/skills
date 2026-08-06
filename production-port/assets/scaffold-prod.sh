@@ -78,11 +78,14 @@ for f in "$ASSETS"/docs/adr-seed/*.md; do
   [ -f "docs/decisions/$b" ] || cp "$f" docs/decisions/
 done
 
-# The code those ADRs promise (log door, error taxonomy, screen boundary).
-mkdir -p src/lib src/components
+# The code those ADRs promise (log door, error taxonomy, screen boundary) —
+# sourced from the spanning template, the single canonical copy.
+SPAN="$ASSETS/cloudflare-neon-prod-spanning-template/src"
+mkdir -p src/lib src/components src/db
 for f in lib/log.ts lib/errors.ts components/screen-error.tsx; do
-  [ -f "src/$f" ] || cp "$ASSETS/template-prod/src/$f" "src/$f"
+  [ -f "src/$f" ] || cp "$SPAN/$f" "src/$f"
 done
+[ -f src/db/seed.ts ] || cp "$ASSETS/template-prod/src/db/seed.ts" src/db/seed.ts
 [ -f docs/conventions/documentation.md ] || cat > docs/conventions/documentation.md <<'EOF'
 # Documentation
 
