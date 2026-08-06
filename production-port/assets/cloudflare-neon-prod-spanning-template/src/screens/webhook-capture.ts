@@ -6,7 +6,7 @@ import { makeDb } from '../db/client.server'
 import { createNote } from '../db/queries.server'
 import { ensureUser } from '../db/seed'
 import { app } from '../lib/context'
-import { guarded, parseOr400 } from '../lib/errors'
+import { forbidden, guarded, parseOr400 } from '../lib/errors'
 import type { Route } from './+types/webhook-capture'
 
 const captureSchema = {
@@ -25,6 +25,11 @@ const captureSchema = {
 export async function action({ request, context }: Route.ActionArgs) {
 	const { env, now } = app(context)
 	return guarded('webhook/capture', {}, async (add) => {
+		// Fail closed in production: no CAPTURE_KEY configured -> nothing captures.
+		if (env.ENVIRONMENT === 'production') {
+			const key = request.headers.get('x-capture-key')
+			if (!env.CAPTURE_KEY || key !== env.CAPTURE_KEY) throw forbidden('capture key required')
+		}
 		const body = parseOr400(captureSchema, await request.json())
 		add({ owner: body.owner })
 		const db = makeDb(env)

@@ -13,3 +13,6 @@ ENVIRONMENT=development
 # Anthropic key — OPTIONAL: absent, lib/ai uses the echo generator (the seam
 # still exercises); present, real calls flow through the one door.
 ANTHROPIC_API_KEY=
+
+# Webhook shared secret. In production: unset -> capture always 403 (fail closed).
+CAPTURE_KEY=

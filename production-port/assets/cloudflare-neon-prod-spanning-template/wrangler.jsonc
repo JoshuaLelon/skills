@@ -10,10 +10,14 @@
   // ADR-0001: Hyperdrive with the DIRECT (non-pooler) Neon string — Hyperdrive
   // does the pooling. Local dev + tests use DATABASE_URL from .dev.vars instead
   // (db/client.server.ts falls back when the binding is absent locally).
-  // hyperdrive binding disabled for local diagnosis
+  // ADR-0001: Hyperdrive carries the DIRECT (non-pooler) Neon string —
+  // Hyperdrive does the pooling. localConnectionString serves dev/tests.
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "0ac30af414fe476c93a4c24b54f951c4", "localConnectionString": "postgres://postgres:local@127.0.0.1:55433/app" }
+  ],
 
   // vars does NOT inherit into environments — repeat every var per env block.
-  "vars": { "ENVIRONMENT": "development" },
+  "vars": { "ENVIRONMENT": "production" },
   "env": {
     "demo": { "name": "spanning-template-demo", "vars": { "ENVIRONMENT": "demo" } }
   }
