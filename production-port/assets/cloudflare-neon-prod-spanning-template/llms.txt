@@ -4,6 +4,7 @@
 
 ## Start here
 
+- [README.md](README.md): cloudflare-neon-prod-spanning-template
 - [AGENTS.md](AGENTS.md): AGENTS.md — [FILL: app name]
 
 ## Conventions — how we work
@@ -24,5 +25,6 @@
 - [0010-schema-conventions.md](docs/decisions/0010-schema-conventions.md) · **L3**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
 - [0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md](docs/decisions/0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md) · **L4**: pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
 - [0012-seams-decided-in-advance.md](docs/decisions/0012-seams-decided-in-advance.md) · **L3**: which boundaries every app on this stack draws before writing features, which it deliberately does not, and how each is enforced. The governing principle and per-seam map live in the production-port skill's `references/architecture.md`.
+- [0013-the-walking-skeleton.md](docs/decisions/0013-the-walking-skeleton.md) · **L3**: why this repo began as a copy of the spanning template, what the exemplar was, and the rule that governs additions to the pattern set.
 - [README.md](docs/decisions/README.md): Decisions (ADRs)
 - [adr-template.md](docs/decisions/adr-template.md): [FILL: what this decides — and the neighbouring decision it does not, with its ADR number]
