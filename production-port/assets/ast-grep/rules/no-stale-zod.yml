@@ -1,0 +1,17 @@
+# Zod 4 traps that fail SILENTLY: the old error params are ignored (custom
+# messages vanish, no warning) and chained string formats are deprecated.
+# Schemas live in .ts files; add a Tsx twin if schemas appear in components.
+id: no-stale-zod
+language: TypeScript
+severity: error
+message: >-
+  Zod 4: formats are top-level (z.email(), not z.string().email()) and the old
+  message/invalid_type_error/required_error params are SILENTLY IGNORED — use
+  { error: '…' } or custom messages never render.
+rule:
+  any:
+    - pattern: z.string().email($$$)
+    - pattern: z.string().uuid($$$)
+    - pattern: z.string().url($$$)
+    - pattern: 'invalid_type_error: $$$'
+    - pattern: 'required_error: $$$'

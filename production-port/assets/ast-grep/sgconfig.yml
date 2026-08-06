@@ -1,0 +1,7 @@
+# TRAP, learned the hard way: `language: TypeScript` and `language: Tsx` are
+# MUTUALLY EXCLUSIVE grammars. A rule declaring TypeScript never scans a single
+# .tsx file — pantogen ran for days with 0 of its rules reaching any route and
+# every scan green. If a rule must cover both, write a Tsx twin of it. The
+# verify-gates mutations are what prove reach; a green scan proves nothing.
+ruleDirs:
+  - ast-grep/rules

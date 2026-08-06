@@ -1,0 +1,13 @@
+id: no-react-legacy
+language: Tsx
+severity: error
+message: >-
+  React 19: `ref` is an ordinary prop (forwardRef is dead) and context is read
+  with `use(Ctx)`, callable conditionally. React 19 ships zero @deprecated
+  tags, so no type error will catch these — only this rule does.
+files:
+  - "src/**"
+rule:
+  any:
+    - pattern: forwardRef($$$)
+    - pattern: useContext($$$)

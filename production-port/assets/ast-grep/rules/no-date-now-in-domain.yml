@@ -1,0 +1,15 @@
+id: no-date-now-in-domain
+language: TypeScript
+severity: error
+message: >-
+  Domain logic takes `now` as an explicit argument. A function whose output
+  changes when nobody changed its arguments is non-deterministic by
+  construction — it breaks replay equality, flow tests, and the fidelity audit
+  at once. Only the composition root reads the real clock.
+files:
+  - "src/store/**"
+rule:
+  any:
+    - pattern: Date.now()
+    - pattern: new Date()
+    - pattern: Math.random()

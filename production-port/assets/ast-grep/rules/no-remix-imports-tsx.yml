@@ -1,0 +1,11 @@
+id: no-remix-imports-tsx
+language: Tsx
+severity: error
+message: >-
+  Remix merged into React Router 8 — import from 'react-router'. Training-era
+  Remix code will not build; see the AGENTS.md translation notes.
+rule:
+  kind: import_statement
+  has:
+    kind: string
+    regex: "@remix-run/(node|react|cloudflare|server-runtime|dev)"

@@ -1,0 +1,10 @@
+id: no-owner-from-params
+language: TypeScript
+severity: error
+message: >-
+  The owner comes from the session, server-side — never from a route param or
+  request body. `/things/:id` must not decide whose thing it is.
+rule:
+  any:
+    - pattern: $$$.owner = params.$FIELD
+    - pattern: eq($TABLE.owner, params.$FIELD)

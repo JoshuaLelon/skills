@@ -1,0 +1,17 @@
+# Structural + regex form, NOT a `pattern: import … from '…'` — pattern string
+# literals are quote-style-exact, so a single-quoted pattern silently misses
+# double-quoted imports (verify-gates caught exactly that). Twin note: import
+# statements appear in both .ts and .tsx — this rule has a Tsx twin.
+# @remix-run/form-data-parser and @remix-run/file-storage are deliberately NOT
+# banned: they are the live RR8 upload API, not stale Remix.
+id: no-remix-imports
+language: TypeScript
+severity: error
+message: >-
+  Remix merged into React Router 8 — import from 'react-router'. Training-era
+  Remix code will not build; see the AGENTS.md translation notes.
+rule:
+  kind: import_statement
+  has:
+    kind: string
+    regex: "@remix-run/(node|react|cloudflare|server-runtime|dev)"

@@ -1,0 +1,14 @@
+id: no-testid-locator
+language: TypeScript
+severity: error
+message: >-
+  Role/name locators only. getByTestId and data-* assertions bypass the
+  semantics the interface is supposed to have; waitForTimeout is a race
+  condition with a green checkmark.
+files:
+  - "e2e/**"
+  - "tests/**"
+rule:
+  any:
+    - pattern: $$$.getByTestId($$$)
+    - pattern: $$$.waitForTimeout($$$)

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Copied from the prototyping skill. Installed via `git config core.hooksPath .githooks`.
+# Every commit re-proves the standards and the locked flows — the "know the
+# moment a flow changes" mechanism. Bypass deliberately with --no-verify only.
+set -e
+npm run gate
+npx playwright test --reporter=line --pass-with-no-tests

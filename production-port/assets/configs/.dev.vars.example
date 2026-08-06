@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# THE MANIFEST RULE: every variable the app reads is listed here, set or not.
+# A var missing from this file is one a fresh checkout cannot discover it
+# needs. For each var, document what it is FOR and what happens when it is
+# unset — an explicit failure mode ("503s", "feature declines"), never a
+# silent fallback.
+#
+# cp .dev.vars.example .dev.vars   ← .dev.vars is gitignored and NEVER deploys.
+# Secrets deploy via `wrangler secret put <NAME> [--env <env>]`.
+# Non-secret deployables live in wrangler.jsonc `vars` — and note `vars` does
+# NOT inherit into environments: every var must be repeated per env block or
+# it silently vanishes there.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Postgres connection. Unset: server 500s at first query.
+DATABASE_URL=postgres://postgres:local@127.0.0.1:55432/app
+
+# Session cookie signing. Unset: auth refuses to start.
+SESSION_SECRET=dev-only-not-a-secret
+
+# 'development' | 'demo' | 'production'. Gates test-only escape hatches closed
+# in production. Unset: treated as production (fail closed).
+ENVIRONMENT=development
