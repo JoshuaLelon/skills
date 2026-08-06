@@ -26,13 +26,45 @@ for f in reference/intent.md reference/product-invariants.md \
 done
 
 cp -R "$ASSETS/template/." .
+
+# React Router 8, SPA mode: the SAME framework as production (ADR-0013), no
+# server. Screens are route modules whose clientLoaders read accessors — at
+# port time clientLoader becomes loader-in-guarded() and nothing else moves.
+rm -f src/App.tsx src/App.css src/main.tsx index.html
+npm install react-router
+npm install -D @react-router/dev
+cat > vite.config.ts <<'VITE'
+import { reactRouter } from '@react-router/dev/vite'
+import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [tailwindcss(), reactRouter()],
+})
+VITE
+node -e '
+const fs = require("fs");
+for (const f of ["tsconfig.app.json", "tsconfig.json"]) {
+  if (!fs.existsSync(f)) continue;
+  let t = fs.readFileSync(f, "utf8");
+  if (!t.includes(".react-router/types")) {
+    t = t.replace(/"include"\s*:\s*\[/, "\"include\": [\".react-router/types/**/*\", ");
+    t = t.replace(/("compilerOptions"\s*:\s*\{)/, "$1\n    \"rootDirs\": [\".\", \"./.react-router/types\"],");
+    fs.writeFileSync(f, t);
+  }
+  break;
+}'
+grep -q '.react-router' .gitignore 2>/dev/null || echo ".react-router" >> .gitignore
+
 cp "$ASSETS/gate.mjs" scripts/gate.mjs
 cp "$ASSETS/strip-harness.mjs" scripts/strip-harness.mjs
 cp "$ASSETS/pre-commit" .githooks/pre-commit
 chmod +x .githooks/pre-commit
 
 npm pkg set \
-  scripts.gate="node scripts/gate.mjs && tsc -b" \
+  scripts.dev="react-router dev" \
+  scripts.build="react-router build" \
+  scripts.gate="react-router typegen && node scripts/gate.mjs && tsc -b" \
   scripts.check="npm run gate && playwright test --pass-with-no-tests" \
   scripts.e2e="playwright test"
 
@@ -71,6 +103,10 @@ for (const f of ["tsconfig.json", "tsconfig.app.json"]) {
 console.log("scaffold: tailwind + @ alias wired (shadcn preflight ready)");
 '
 
+
+# Reconcile: the vite template's dependency set churns; a final plain install
+# guarantees the tree matches package.json regardless of ordering effects.
+npm install
 
 git init -q 2>/dev/null || true
 git config core.hooksPath .githooks

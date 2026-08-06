@@ -32,6 +32,11 @@ the template (with the exemplar exercising them) before any real app uses them.
 
 ## Consequences
 
+The prototype runs the SAME framework in SPA mode (`ssr: false`), sharing a
+byte-identical runtime set with this template (host, primitives, ScreenError,
+states page, gate — `check-parity.mjs` in the skills repo enforces it), which
+is what reduces the screen port to a clientLoader→loader rename.
+
 Fixes discovered in any app flow UP to the skill's template copy, so every
 future app inherits them. The prototype repo survives untouched as the
 fidelity audit's reference side (its `prototype` tag). Template rot is caught

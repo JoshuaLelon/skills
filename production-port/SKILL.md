@@ -74,16 +74,20 @@ node scripts/port-from-prototype.mjs --from <prototype-repo>
 
 The script carries the portable set deterministically: level docs and
 `src/fixtures/` land in place (they continue, never restart); store, screens,
-components, and flows land in **`_port/` staging**, which is excluded from
+components, and flows land in **`_port/` staging** (files byte-identical to
+the template's shared set — primitives, host, ScreenError — are skipped
+outright), which is excluded from
 tsc, the gate, knip, biome, and playwright — so **check stays green throughout
 the port**; there is no red-hooks transition to survive.
 
 **The mapping loop**, one prototype feature at a time, each onto the
 exemplar's worked pattern: fixture interfaces → schema (the notes table shows
 the shape) → seeder → reducer cases merged into the template's store (the
-template host stays — it is the SSR-adapted one) → each screen rebuilt on the
-notes-screen pattern (loader→queries, `guarded()`, primitives compose) and
-routed → each flow test moved from staging and re-pointed. Delete from
+template host stays — it is the SSR-adapted one) → each screen MOVED from
+staging (`clientLoader` → `loader` inside `guarded()`, accessor import → the
+query module — same signatures; the prototype runs the same framework in SPA
+mode, so nothing else changes) and routed → each flow test moved from staging
+and re-pointed. Delete from
 `_port/` as you map; delete the note exemplar once its pattern has a real
 follower.
 

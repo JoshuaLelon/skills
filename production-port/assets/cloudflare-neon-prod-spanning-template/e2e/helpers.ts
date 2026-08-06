@@ -1,8 +1,9 @@
 // test/expect with the clock pre-pinned to the fixture anchor — determinism by
 // construction (skill: flow tests).
 import { test as base, expect } from '@playwright/test'
+import { NOW } from '../src/fixtures/now'
 
-export const NOW = new Date('2026-08-04T09:00:00')
+export { NOW }
 
 export const test = base.extend({
 	page: async ({ page }, use) => {

@@ -17,7 +17,7 @@
 // must be MAPPED onto its patterns one feature at a time. The port is done
 // when `_port/` is empty and the note exemplar is deleted — `port:status`
 // reports the remainder, and both staging dirs are excluded from tsc/gates.
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
@@ -94,10 +94,38 @@ for (const d of ["reference", "design", "plans"]) carry(`docs/${d}`, `docs/${d}`
 carry("src/fixtures", "src/fixtures");
 
 // The collide-y layers go to STAGING — map onto the exemplar's patterns.
-carry("src/store", "src/_port/store");
-carry("src/components", "src/_port/components");
-carry("src/screens", "src/_port/screens");
-carry("e2e/flows", "e2e/_port");
+// Files byte-identical to this template's own copy (shared primitives, host,
+// ScreenError, states page) are skipped: they already live here.
+const identical = (from) => {
+	const here = join(ROOT, from);
+	const there = join(SRC, from);
+	try {
+		return readFileSync(here, "utf8") === readFileSync(there, "utf8");
+	} catch {
+		return false;
+	}
+};
+const carryStaged = (dir, dest) => {
+	if (!existsSync(join(SRC, dir))) return;
+	let staged = 0;
+	let skipped = 0;
+	for (const abs of walk(join(SRC, dir))) {
+		const rel = abs.replace(`${SRC}/`, "");
+		if (identical(rel)) {
+			skipped++;
+			continue;
+		}
+		const to = join(ROOT, dest, rel.replace(`${dir}/`, ""));
+		mkdirSync(join(to, ".."), { recursive: true });
+		cpSync(abs, to);
+		staged++;
+	}
+	carried.push(`${dir} → ${dest} (${staged} staged, ${skipped} identical-skipped)`);
+};
+carryStaged("src/store", "src/_port/store");
+carryStaged("src/components", "src/_port/components");
+carryStaged("src/screens", "src/_port/screens");
+carryStaged("e2e/flows", "e2e/_port");
 
 console.log(`port: carried —\n  ${carried.join("\n  ")}`);
 console.log(`

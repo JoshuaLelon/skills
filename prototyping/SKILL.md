@@ -135,7 +135,13 @@ npx shadcn@latest init              # interactive; scaffold pre-wired tailwind +
 ```
 
 `scaffold.sh` is this skill's setup made deterministic — run it before the first
-component, never later. It creates the canonical layout, copies the gate and the
+component, never later. It converts the app to **React Router 8 in SPA mode**
+(`ssr: false`): the SAME framework as production, minus the server. Screens are
+route modules whose `clientLoader`s read through accessors — at port time
+`clientLoader` becomes `loader`-in-`guarded()` and the accessor import becomes
+the query module, **same signatures, nothing else moves**. Routes are real from
+day one (`routes.ts`; `/__states` included), and route ErrorBoundaries +
+`AppError` (`lib/errors.ts`) are the production error mechanism, already. It creates the canonical layout, copies the gate and the
 pre-commit hook, installs Playwright (chromium-only, `webServer` self-starts Vite —
 rules in `references/flow-tests.md`), ships the store host with the dev invariants
 built in, and deliberately overwrites `main.tsx` (states route + StrictMode +
@@ -163,8 +169,13 @@ src/
     view/           # chip lists, colour tokens — becomes nothing
     accessors.ts    ◆ accessor() helper — sourceOf(id) etc., throws on miss
   store/            ◆ reducer.ts starter — pure; the gate keeps it that way
-  host.tsx          ◆ the ONLY file touching store AND react; dev invariants built in
-  components/       # L2 primitives, wrapped registry components included
+  root.tsx          ◆ RR layout; mounts <Walkthrough>; root ErrorBoundary
+  routes.ts         ◆ real routes from day one (index + /__states)
+  entry.client.tsx  ◆ StrictMode lives here (the gate watches it)
+  lib/errors.ts     ◆ AppError/notFound — the production taxonomy's client half
+  host.tsx          ◆ BYTE-IDENTICAL to production's (check-parity.mjs enforces)
+  components/       ◆ starter primitives (Page/Btn/TextInput/Row/ScreenError) —
+                    #   byte-identical to production's; add yours beside them
   screens/          # L3 — composition only
   states.tsx        ◆ /__states — auto-collects STATES via import.meta.glob
   walkthrough.tsx   ◆ <Walkthrough> strip + <Mark> markers

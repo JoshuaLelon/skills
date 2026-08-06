@@ -34,6 +34,14 @@ export function useAppState(): State {
 	)
 }
 
+
+// Dev affordance: "what just happened". The log already exists for replay
+// equality; exposing the tail costs nothing. (The prototype's walkthrough
+// renders it; production simply never calls it.)
+export function recentActions(n: number): Action[] {
+	return log.slice(-n)
+}
+
 function assertReplay(): void {
 	let replayed = freshState()
 	for (const a of log) replayed = reducer(replayed, a)
