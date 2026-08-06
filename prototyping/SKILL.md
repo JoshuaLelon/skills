@@ -1,6 +1,6 @@
 ---
 name: prototyping
-description: Process for taking an idea through design docs to a clickable prototype that stays cheap to change and ports cheaply to production. Use when building a prototype, mockup, clickable demo, wireframe, or vertical slice; when starting a design session that ends in a prototype; when the user approves a flow and wants it protected from later edits; when porting a prototype to the real stack; or when auditing how far a shipped app drifted from its design. Triggers on: prototype, mockup, clickable demo, wireframe, vertical slice, design session, throwaway code, lock this flow, e2e, Playwright, port to production.
+description: Process for taking an idea through design docs to a clickable prototype that stays cheap to change and ports cheaply to production. Use when building a prototype, mockup, clickable demo, wireframe, or vertical slice; when starting a design session that ends in a prototype; when the user approves a flow and wants it protected from later edits; when porting a prototype to the real stack; Triggers on: prototype, mockup, clickable demo, wireframe, vertical slice, design session, throwaway code, lock this flow, e2e, Playwright, port to production.
 ---
 
 # Prototyping: idea → prototype → production
@@ -452,7 +452,7 @@ and the accent colour *is* the pointer (nothing in the product may use it). The
 markers register against components at render, never `querySelector` paths into
 product markup — or renaming one class breaks the notes and the regression suite at
 once. Notes-as-data pays three times: the strip renders them, the marker assertion
-checks them, the port audit reads them as its coverage spec.
+checks them, and flow tests are transcribed from them.
 
 Two judgments stay yours while walking:
 
@@ -500,14 +500,14 @@ build than to prototype; saying so is part of the job.
 - Before compacting, grep the docs for names and buttons that changed while
   iterating. Contradictions cluster in the doc written *first* and left alone.
 
-## Phase 7 — Raise fidelity, port, audit
+## Phase 7 — Raise fidelity, then port
 
 Raising fidelity is a **visual** step — the architecture was Phase 4 and cannot be
 deferred to here. If the rules held, the port is mostly copying files.
 
 **First act of the port: `git tag prototype`, then strip the harness,
-deterministically.** The tag preserves the walkthrough and notes as the fidelity
-audit's reference side — strip deletes both. On a clean tree
+deterministically.** The tag preserves the walkthrough and notes citably —
+strip deletes both from the tree. On a clean tree
 (the script refuses otherwise): `node scripts/strip-harness.mjs` deletes
 `walkthrough.tsx` and `fixtures/script/`, unwraps every `<Mark>` and the
 `<Walkthrough>` wrapper, verifies no code-level harness reference survives, and

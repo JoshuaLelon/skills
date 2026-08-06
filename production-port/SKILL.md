@@ -1,6 +1,6 @@
 ---
 name: production-port
-description: Checklist and deterministic tooling for taking a finished prototype to production — strip the harness, port to the real stack, stand up database/environments/tests/static analysis/docs, audit fidelity against the prototype, and deploy. Use when shipping a prototype to production, setting up local dev + staging + prod environments, adding databases or migrations to a ported app, standing up static analysis (biome, oxlint, ast-grep, dependency-cruiser, knip), or setting up a documentation system. Triggers on: ship to production, prototype to production, production port, staging, deploy checklist, set up database, migrations, Neon, wrangler, drizzle, static analysis, lefthook, docs system.
+description: Checklist and deterministic tooling for taking a finished prototype to production — strip the harness, port to the real stack, stand up database/environments/tests/static analysis/docs, and deploy. Use when shipping a prototype to production, setting up local dev + staging + prod environments, adding databases or migrations to a ported app, standing up static analysis (biome, oxlint, ast-grep, dependency-cruiser, knip), or setting up a documentation system. Triggers on: ship to production, prototype to production, production port, staging, deploy checklist, set up database, migrations, Neon, wrangler, drizzle, static analysis, lefthook, docs system.
 ---
 
 # Production port: prototype → shipped
