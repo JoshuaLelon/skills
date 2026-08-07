@@ -299,6 +299,12 @@ const MUTATIONS = [
 		expect: 'which is GENERATED',
 	},
 	{
+		gate: 'config-traps: a check:* script absent from CHECKS is refused',
+		files: {},
+		cmd: restoreProbe('package.json', 's|"check:startup"|"check:orphaned"|'),
+		expect: 'would never run',
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.

@@ -72,30 +72,19 @@ inherited. Generated from the `Supersedes:` edges; run `npm run docs:adr-graph`.
 
 ## 3. Banned patterns
 
-Two tiers, and the tier is stated per row — **a rule credited with more than it
-catches is worse than a rule nobody trusts, because the gap is invisible from
-the claim.**
+**Not listed here, deliberately.** Every rule carries its own reasoning and
+delivers it at the moment you break it — ast-grep in `message:`,
+dependency-cruiser in `comment:` (printed by `lint:arch`). A copy in this file
+would be a second place to keep true, and when it was one it drifted: three
+rules missing, every script gate missing, and one row still claiming a check was
+staged-only months after it stopped being.
 
-| id | rule | enforced by |
-| --- | --- | --- |
-| no-date-now-in-domain | domain logic takes `now` as an argument | ast-grep + verify:gates |
-| no-testid-locator | role/name locators; no `getByTestId`/`waitForTimeout` | ast-grep + verify:gates |
-| no-owner-from-params | owner comes from the session, never a route param | ast-grep + verify:gates |
-| store-is-pure | store imports no view, framework, or db | dependency-cruiser + verify:gates |
-| no-db-in-view | screens/components import no server-only deps | dependency-cruiser + verify:gates |
-| no-any | `unknown` + narrowing, never `any` | oxlint |
-| no-react-legacy(+ts) | no `forwardRef` / `useContext` — React 19 forms | ast-grep + verify:gates |
-| no-remix-imports(+tsx) | Remix merged into RR8; upload pkgs exempt | ast-grep + verify:gates |
-| no-app-load-context(+tsx) | RR7 API — builds clean, 500s at runtime | ast-grep + verify:gates |
-| no-inline-promise-in-use(+ts) | `use(f())` refetches every render, forever | ast-grep + verify:gates |
-| no-stale-zod | Zod 4 forms; old error params silently ignored | ast-grep + verify:gates |
-| no-bcrypt | Argon2id or nothing; bcrypt truncates at 72 bytes | dependency-cruiser + verify:gates |
-| single-door-console(+tsx) | logging via lib/log wide events; raw console is an unqueryable string | ast-grep + verify:gates |
-| one-door-model(+tsx) | the model SDK only via the src/lib/ai adapter (ADR-0012) | ast-grep + verify:gates |
-| config traps | jsdom, coverage thresholds, `--env` deploys, erasableSyntaxOnly, env-manifest completeness, wrangler per-env compat-date + vars parity | check-config-traps.mjs |
-| rule coverage | every error-severity rule has a mutation, or is declared unprovable with a reason | verify:gates pre-pass |
-| doc status blocks | staged docs carry Kind (matching folder), Level, and Built on designs | docs-check (staged only) |
-| [FILL: app-specific bans — add the ast-grep rule AND its verify-gates mutation in the same commit; prose-only rows must say "prose only"] | | |
+`npm run verify:gates` lists every rule with proof it can fire.
+`docs/reference/adr-graph.md` maps each ADR to the rule enforcing it.
+
+[FILL: app-specific bans that have NO gate yet — those belong here, because
+nothing else states them. The moment one gets a rule, add the rule AND its
+verify-gates mutation in the same commit, and delete the row.]
 
 ## 4. Traps that no gate can catch
 

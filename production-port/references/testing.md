@@ -8,11 +8,19 @@ real Postgres is an integration test, browser or no browser:
 | --- | --- | --- | --- |
 | unit | `*.test.ts` beside source | nothing | the reducer above all — a combinatorial surface e2e can only walk a few paths through |
 | component | `*.test.tsx`, real browser via vitest browser mode | Chromium | interactive components, motion |
-| integration | `tests/integration/` | server + Postgres, no browser | writes, auth, isolation |
+| integration | `integration/` | the BUILT worker in workerd + Postgres, no browser | writes, auth, isolation, the Hyperdrive binding |
 | e2e | `e2e/flows/` | everything | the locked flows, ported from the prototype |
 
 Vitest 4 `projects` split by environment need (node / browser), not by folder
 aesthetics.
+
+**The integration tier's `environment: 'node'` describes the RUNNER, not the
+app** (ADR-0021). The test file runs in Node; `integration/harness.ts` starts
+`./build` in workerd via `createTestHarness` and every assertion travels over
+HTTP into it, through the same Hyperdrive binding production uses. Reading that
+config line as "the integration tier runs in Node" was true once and was the
+bug — the tier claimed to navigate the server while executing it in a runtime
+the server never runs in. `test:int` builds first; a stale `./build` is refused.
 
 ## The clock ladder
 

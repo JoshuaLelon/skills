@@ -9,6 +9,8 @@ module.exports = {
 			// The reducer stays pure and framework-free — it must port unedited
 			// and unit-test without a DOM. (The prototype gate's store-imports-view
 			// rule, graduated to real import-graph analysis.)
+			comment:
+				"The store imports no view, framework, or db — that purity is what lets the reducer be replayed and ported unedited (ADR-0007).",
 			name: "store-is-pure",
 			severity: "error",
 			from: { path: "^src/store" },
@@ -21,6 +23,8 @@ module.exports = {
 			// modules — their loaders legitimately import the db (the framework
 			// strips server code from the client bundle); pure view components
 			// never do.
+			comment:
+				"Screens and components import no server-only dependency; the loader is the seam (ADR-0012 seam 1).",
 			name: "no-db-in-view",
 			severity: "error",
 			from: { path: "^src/components" },
@@ -30,18 +34,24 @@ module.exports = {
 			// The seam: views read through accessors, never the fixture directly.
 			// The accessor becomes the loader; this rule is what keeps that swap a
 			// one-file change. (Prototype gate's seam-leak, graduated.)
+			comment:
+				"Views read data from loaders, never from fixtures — a fixture import is a screen that will render in dev and 500 in production.",
 			name: "no-fixture-in-view",
 			severity: "error",
 			from: { path: "^src/(screens|components)" },
 			to: { path: "^src/fixtures/entities" },
 		},
 		{
+			comment:
+				"Test helpers must not reach production code; anything imported here ships in the bundle.",
 			name: "no-test-in-prod",
 			severity: "error",
 			from: { path: "^src", pathNot: "\\.test\\.(ts|tsx)$" },
 			to: { path: "^(tests|e2e)/|\\.test\\.(ts|tsx)$" },
 		},
 		{
+			comment:
+				"A cycle means these modules are one module with extra steps — and it breaks the load order non-deterministically.",
 			name: "no-circular",
 			severity: "error",
 			from: {},
@@ -50,6 +60,8 @@ module.exports = {
 		{
 			// bcrypt is legacy-only (OWASP): Argon2id or nothing. And bcrypt
 			// silently truncates passwords past 72 bytes.
+			comment:
+				"Argon2id or nothing: bcrypt silently truncates at 72 bytes, so a long passphrase is weaker than a short one (ADR-0004).",
 			name: "no-bcrypt",
 			severity: "error",
 			from: {},

@@ -79,6 +79,22 @@ for (const f of readdirSync(ROOT).filter((f) => /^(vitest|vite)\.config\./.test(
 // PROD; a deploy script without a preceding build ships the stale ./build.
 const pkg = JSON.parse(read('package.json') ?? '{}')
 const scripts = pkg.scripts ?? {}
+
+// 1d. A `check:*` script that nothing runs is a gate that does not exist. The
+// CHECKS list in check-runner is the only thing that makes one real, and adding
+// a script without adding it there fails silently and permanently — the exact
+// shape of every dead gate this repo has found. Generators and fixers are not
+// checks; they are named, not inferred, so the exemption is a decision rather
+// than a guess.
+{
+	const runner = read('scripts/check-runner.mjs') ?? ''
+	const NOT_A_CHECK = new Set(['check:ci'])
+	for (const name of Object.keys(scripts).filter((k) => k.startsWith('check:')))
+		if (!NOT_A_CHECK.has(name) && !runner.includes(`'${name}'`))
+			problems.push(
+				`package.json has scripts.${name} but check-runner's CHECKS list does not — it would never run. Add it there, or rename it if it is a generator rather than a check.`,
+			)
+}
 const hasWrangler = !!(pkg.devDependencies?.wrangler || pkg.dependencies?.wrangler)
 for (const [name, cmd] of Object.entries(scripts)) {
 	if (/wrangler\s+deploy\s+--env/.test(cmd))
