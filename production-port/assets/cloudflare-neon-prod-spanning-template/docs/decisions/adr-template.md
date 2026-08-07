@@ -3,6 +3,17 @@
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: date]
 > **Level:** [FILL: 3 — architecture | 4 — mechanism; an ADR is the record of a
 > decision made AT a level, not a level itself]
+> **Constrained by:** [FILL: ADR numbers and/or doc paths this rests on — the
+> same field `product-invariants.md` and `object-model.md` use, continued down
+> the stack. `—` if it rests on nothing. Never point DOWN a level.]
+> **Enforced by:** [FILL: `ast-grep:<id>`, `depcruise:<name>`, `script:<name>`,
+> or `none — judgement`. Checked: a named rule that does not exist fails
+> docs-check, and so does a rule no ADR claims.]
+> **Applies to:** [FILL: the stack axes this dies with — `cloudflare`, `neon`,
+> `react-router`, or `any`. Diverging from an axis prunes everything on it.]
+> **Supersedes:** [FILL: optional — `NNNN` or `NNNN#topic` for a PARTIAL
+> supersession. The older ADR is never edited; the generated index renders the
+> correction against it from this edge.]
 > **Scope:** [FILL: what this decides — and the neighbouring decision it does
 > not, with its ADR number]
 

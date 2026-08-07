@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
+> **Constrained by:** 0012
+> **Enforced by:** script:check:startup, script:config:traps
+> **Applies to:** cloudflare
 > **Scope:** decides how module-scope cost is kept honest. Does not decide
 > request-time latency, which is placement (ADR-0019).
 

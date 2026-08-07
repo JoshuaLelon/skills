@@ -9,7 +9,7 @@
 
 ## Conventions — how we work
 
-- [documentation.md](docs/conventions/documentation.md): Documentation
+- [documentation.md](docs/conventions/documentation.md) · **L4**: the two axes every doc carries and the invariants that hold them true. What each folder is FOR is below; individual decisions are `decisions/`.
 
 ## Decisions — immutable; never edit, only supersede
 

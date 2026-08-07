@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
+> **Constrained by:** 0001
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare
 > **Scope:** pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
 
 ## Decision

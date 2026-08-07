@@ -2,6 +2,10 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
+> **Constrained by:** 0006
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare
+> **Supersedes:** 0006#integration-runtime
 > **Scope:** decides which runtime each test tier executes in. ADR-0006 decided
 > the four tiers and what each navigates; that taxonomy is unchanged.
 

@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
+> **Constrained by:** 0001
+> **Enforced by:** script:types:check, script:config:traps
+> **Applies to:** cloudflare
 > **Scope:** decides how `worker-configuration.d.ts` stays true. Does not decide
 > route types (`react-router typegen`, already covered by `npm run gate`).
 

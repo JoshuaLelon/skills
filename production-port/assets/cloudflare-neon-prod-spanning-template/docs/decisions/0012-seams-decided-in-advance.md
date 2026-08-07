@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0003
+> **Enforced by:** ast-grep:one-door-model, depcruise:no-db-in-view, depcruise:no-fixture-in-view
+> **Applies to:** any
 > **Scope:** which boundaries every app on this stack draws before writing
 > features, which it deliberately does not, and how each is enforced. The
 > governing principle and per-seam map live in the production-port skill's

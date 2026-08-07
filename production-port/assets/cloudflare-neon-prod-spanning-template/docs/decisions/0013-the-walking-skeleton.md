@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** —
+> **Enforced by:** script:verify:gates
+> **Applies to:** any
 > **Scope:** why this repo began as a copy of the spanning template, what the
 > exemplar was, and the rule that governs additions to the pattern set.
 

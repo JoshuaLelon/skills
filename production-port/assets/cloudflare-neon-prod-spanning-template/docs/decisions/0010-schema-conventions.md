@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0002
+> **Enforced by:** ast-grep:no-owner-from-params
+> **Applies to:** neon
 > **Scope:** pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
 
 ## Decision

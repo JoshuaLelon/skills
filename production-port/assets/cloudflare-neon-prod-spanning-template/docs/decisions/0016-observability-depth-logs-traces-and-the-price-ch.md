@@ -2,6 +2,10 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0009
+> **Enforced by:** script:config:traps
+> **Applies to:** cloudflare
+> **Supersedes:** 0009#traces
 > **Scope:** decides how much observability to buy and when to add the next
 > layer. ADR-0009 decided the log SHAPE (one wide event, one flat JSON object)
 > and still holds; this decides the layers around it. Superseded from ADR-0009:

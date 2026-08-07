@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
+> **Constrained by:** 0001
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare, neon
 > **Scope:** decides where the Worker executes relative to the database. Does not
 > decide connection pooling (Hyperdrive, ADR-0001) or cold start (ADR-0017).
 

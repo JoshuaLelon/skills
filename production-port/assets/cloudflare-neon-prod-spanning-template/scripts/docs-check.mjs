@@ -77,9 +77,19 @@ for (const f of stagedAll.filter(
 const modified = gitPaths('--diff-filter=M')
 for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f))) {
 	const diff = execSync(`git diff --cached -U0 -- "${f}"`, { cwd: ROOT }).toString()
-	if (!/superseded/i.test(diff))
+	// The status block is METADATA, not the decision — the README already treats
+	// it as mutable (the superseded-by pointer lives there), so the rule that
+	// froze the whole file was narrower than its own rationale. What is immutable
+	// is the argument: Decision, Context, Alternatives declined, Consequences.
+	// Edges (`Constrained by:`, `Enforced by:`) have to stay current or the
+	// generated graph lies, and re-deciding is not what updating them means.
+	const changed = diff
+		.split('\n')
+		.filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l))
+	const bodyChanged = changed.some((l) => l.slice(1).trim() !== '' && !/^[+-]>\s/.test(l))
+	if (bodyChanged && !/superseded/i.test(diff))
 		problems.push(
-			`${f}: ADRs are immutable — supersede with a new ADR (the only legal edit is adding the 'superseded by' pointer)`,
+			`${f}: ADR bodies are immutable — supersede with a new ADR (the status block may change; the argument may not)`,
 		)
 }
 

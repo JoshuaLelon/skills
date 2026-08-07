@@ -1,5 +1,11 @@
 # Documentation
 
+> **Kind:** convention · **Status:** accepted · **Updated:** [FILL: date]
+> **Level:** 4 — mechanism
+> **Constrained by:** —
+> **Scope:** the two axes every doc carries and the invariants that hold them
+> true. What each folder is FOR is below; individual decisions are `decisions/`.
+
 Two axes, both required on every doc.
 
 **Lifecycle — the folder.** "Where does this go" is answered by the path:
@@ -27,6 +33,22 @@ These docs began life in the prototyping phase (intent → invariants → design
 and continue here — never restart them. Every file opens with a status block:
 `Kind / Status / Updated / Level / Built (design docs; falsifiable) / Scope
 (including what it does NOT cover) / Constrained by`.
+
+**`Constrained by:` is the edge the whole tree is drawn from**, and it runs the
+full depth: `intent.md` (L0) → `product-invariants.md` (L1) →
+`object-model.md` (L2) → the ADRs (L3–L4). It was the ADRs that lacked it, which
+is how `decisions/` became a detached subtree whose dependencies lived only in
+`Scope:` prose — a hand-maintained adjacency list nothing could read. ADRs carry
+three more machine-readable fields for the same reason: `Enforced by:` (checked
+in both directions — a named rule must exist, and a rule no ADR claims is
+flagged), `Applies to:` (which stack axes it dies with, so divergence prunes by
+computation instead of judgement), and `Supersedes:` (`NNNN#topic` for a partial
+supersession — the older ADR is never edited; `docs:adr-graph` renders the
+correction against it).
+
+An ADR's **body is immutable; its status block is not.** The block is metadata —
+the supersession pointer always lived there — and edges must stay current or the
+generated graph lies. `docs-check` enforces exactly that split.
 
 Every invariant of this system, with its enforcement stated — a rule credited
 with more than it catches is worse than no rule:

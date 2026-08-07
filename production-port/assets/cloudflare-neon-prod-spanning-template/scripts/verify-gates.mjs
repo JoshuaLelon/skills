@@ -32,6 +32,27 @@ const UNPROVABLE = {
 		'fires on an import of an installed bcrypt; installing bcrypt to prove it is worse than the gap',
 }
 
+// docs-check 2b fires on MODIFICATIONS to tracked ADRs, which a harness that
+// only plants new files cannot produce without editing the real tree. Build a
+// throwaway repo, seed it with a real ADR, edit that, run the real script there.
+const immutableProbe = (edit) => `
+d=$(mktemp -d)
+mkdir -p "$d/docs/decisions" "$d/scripts"
+cp scripts/docs-check.mjs "$d/scripts/"
+cp docs/decisions/0009-*.md "$d/docs/decisions/0009-probe.md"
+cd "$d"
+git init -q .
+git add -A
+git -c user.email=g@g -c user.name=g commit -qm seed
+${edit}
+git add -A
+node scripts/docs-check.mjs
+rc=$?
+cd /
+rm -rf "$d"
+exit $rc
+`
+
 const MUTATIONS = [
 	{
 		gate: 'ast-grep: no-date-now-in-domain',
@@ -128,9 +149,27 @@ const MUTATIONS = [
 		// broken (a filename regex that matched nothing, masked by the template
 		// sitting in a subdirectory of the skills repo); nothing proved it fired.
 		gate: 'docs-check: ADR citation resolves',
-		files: { 'src/__mut__adr.md': 'Planted: cites ADR-9999, which does not exist.\n' },
+		// The bogus number is concatenated so this fixture is not itself a
+		// citation — docs-check scans .mjs, and caught exactly that.
+		files: { 'src/__mut__adr.md': `Planted: cites ADR-${'9999'}, which does not exist.\n` },
 		cmd: 'git add -f -- src/__mut__adr.md && node scripts/docs-check.mjs; rc=$?; git reset -q -- src/__mut__adr.md; exit $rc',
-		expect: 'src/__mut__adr.md: cites ADR-9999',
+		expect: `src/__mut__adr.md: cites ADR-${'9999'}`,
+	},
+	{
+		gate: 'docs-check: an ADR BODY edit is refused',
+		files: {},
+		cmd: immutableProbe(
+			`printf '\\nAn added paragraph in the argument.\\n' >> docs/decisions/0009-probe.md`,
+		),
+		expect: 'ADR bodies are immutable',
+	},
+	{
+		gate: 'docs-check: a STATUS BLOCK edit is allowed (negative control)',
+		files: {},
+		cmd: immutableProbe(
+			`node -e "const f='docs/decisions/0009-probe.md',fs=require('fs');fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('> **Level:**','> **Applies to:** cloudflare\\n> **Level:**'))"`,
+		),
+		expectClean: true,
 	},
 	{
 		gate: 'docs-check: a VALID ADR citation stays silent (negative control)',

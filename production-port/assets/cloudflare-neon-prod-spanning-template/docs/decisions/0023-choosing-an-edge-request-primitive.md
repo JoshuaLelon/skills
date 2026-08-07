@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0001
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare
 > **Scope:** decides what runs at the request edge rather than in a loader. Does
 > not decide authentication (ADR-0004) or where the Worker executes (ADR-0019).
 

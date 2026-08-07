@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0001
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare
 > **Scope:** decides what runs work that is not part of the response. Does not
 > decide where that work stores state (ADR-0014) or how it is observed
 > (ADR-0016).

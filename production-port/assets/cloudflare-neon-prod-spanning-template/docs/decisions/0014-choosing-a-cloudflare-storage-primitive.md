@@ -2,6 +2,9 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
+> **Constrained by:** 0001
+> **Enforced by:** none — judgement
+> **Applies to:** cloudflare, neon
 > **Scope:** decides HOW to pick a store for a new kind of data. ADR-0001 decided
 > the primary store (Neon Postgres via Hyperdrive) and stays the default; this
 > one decides when something else earns a place beside it. It does not decide
