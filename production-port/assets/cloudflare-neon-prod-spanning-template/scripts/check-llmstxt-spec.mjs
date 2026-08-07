@@ -4,9 +4,9 @@
 // written against it — same idea as a `Tracks: path@hash` line, pointed at the
 // web. Network-tolerant: offline is a note, never a failure.
 //
-// When it reports a change: read the new spec, update docs-index.mjs (here AND
-// the production-port skill's copy in assets/scripts/), then bump SPEC_HASH
-// below in both copies. The skill's copy is the source; fixes flow up.
+// When it reports a change: read the new spec, update docs-index.mjs, then bump
+// SPEC_HASH below. There is ONE copy of each — the spanning template's — and
+// scaffold-prod.sh copies from here, so a fix made here reaches both paths.
 import { createHash } from 'node:crypto'
 
 // sha256 of the normalized spec text this generator was written against.
@@ -33,10 +33,8 @@ try {
 			`llmstxt-spec: UPSTREAM CHANGED (current ${hash.slice(0, 12)}…, pinned ${SPEC_HASH.slice(0, 12)}…).`,
 		)
 		console.log('  1. Read https://llmstxt.org/ and diff against what docs-index.mjs generates.')
-		console.log(
-			"  2. Update scripts/docs-index.mjs AND the production-port skill's assets/scripts/ copy.",
-		)
-		console.log('  3. Bump SPEC_HASH in both copies of this script.')
+		console.log('  2. Update scripts/docs-index.mjs.')
+		console.log('  3. Bump SPEC_HASH in this script.')
 		console.log('  (If the change is cosmetic site chrome, just bump the hash.)')
 	}
 } catch (e) {

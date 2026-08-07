@@ -23,14 +23,18 @@ cp "$ASSETS/configs/lefthook.yml" .
 mkdir -p ast-grep/rules scripts
 cp "$ASSETS/ast-grep/sgconfig.yml" ./sgconfig.yml
 cp "$ASSETS"/ast-grep/rules/*.yml ast-grep/rules/
-cp "$ASSETS/scripts/verify-gates.mjs" scripts/
-cp "$ASSETS/scripts/db-push-guard.mjs" scripts/
-cp "$ASSETS/scripts/docs-check.mjs" scripts/
-cp "$ASSETS/scripts/docs-index.mjs" scripts/
-cp "$ASSETS/scripts/docs-fillins.mjs" scripts/
-cp "$ASSETS/scripts/check-llmstxt-spec.mjs" scripts/
-cp "$ASSETS/scripts/export-stack.mjs" scripts/
-cp "$ASSETS/scripts/check-config-traps.mjs" scripts/
+# Sourced from the spanning template — the SINGLE canonical copy of these
+# scripts (same move as the log/errors/screen-error dedupe). There used to be a
+# second set under assets/scripts/ for this path to copy from; the two were
+# byte-different in every file, because only the template's copies sit inside
+# biome's `includes` and get formatted. They never diverged in behaviour, but
+# nothing would have caught it if they had: check-parity.mjs guards the nine
+# files shared with the PROTOTYPING skill and never covered this pair.
+SPAN_SCRIPTS="$ASSETS/cloudflare-neon-prod-spanning-template/scripts"
+for s in verify-gates db-push-guard docs-check docs-index docs-fillins \
+         check-llmstxt-spec export-stack check-config-traps check-startup check-runner; do
+  cp "$SPAN_SCRIPTS/$s.mjs" scripts/
+done
 
 # The prototype gate keeps running until each rule is superseded (SKILL Phase 2).
 # A port into a fresh repo arrives without it — pull it from the sibling skill.
