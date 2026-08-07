@@ -28,6 +28,10 @@ import { dirname, join, relative, resolve } from 'node:path'
 const ROOT = process.cwd()
 const BLESS = process.argv.includes('--bless')
 const CHECK = process.argv.includes('--check')
+// Blessing asserts "a human re-read this". Repo-wide, one invocation can assert
+// that about documents you never opened — so `--bless <path…>` scopes it. Bare
+// `--bless` still blesses everything, which is honest only when you did.
+const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 
 const blob = (p) => {
 	try {
@@ -59,7 +63,9 @@ const missing = []
 let pins = 0
 let rewritten = 0
 
-for (const f of [...docs('docs')]) {
+for (const f of [...docs('docs')].filter(
+	(f) => !ONLY.length || ONLY.some((o) => f.endsWith(o) || f.includes(o)),
+)) {
 	const text = readFileSync(join(ROOT, f), 'utf8')
 	const line = text.match(/\*\*Tracks:\*\*\s*([^\n]+)/)?.[1]?.trim()
 	if (!line) continue
@@ -83,7 +89,7 @@ for (const f of [...docs('docs')]) {
 				rewritten++
 			} else {
 				stale.push(
-					`${f}: tracks ${rel}, pinned @${pinned}, now @${now} — re-read it and \`npm run docs:bless\``,
+					`${f}: tracks ${rel}, pinned @${pinned}, now @${now} — re-read it, then \`npm run docs:bless -- ${f.split('/').pop().slice(0, 4)}\` to bless just this one`,
 				)
 			}
 		}

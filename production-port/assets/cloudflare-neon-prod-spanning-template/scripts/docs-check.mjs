@@ -162,4 +162,11 @@ if (problems.length) {
 	console.error(`docs-check:\n  ${[...new Set(problems)].join('\n  ')}`)
 	process.exit(1)
 }
-console.log('docs-check: OK')
+// Say how much was examined. On a clean tree there is nothing to check and a
+// bare "OK" reads as validation — the false-green that check-runner already
+// guards against for the skipped DB tiers, appearing here instead.
+console.log(
+	stagedAll.length
+		? `docs-check: OK (${stagedAll.length} changed file(s) examined)`
+		: 'docs-check: OK — no changed files to examine (nothing was validated)',
+)

@@ -187,7 +187,7 @@ if (wranglerRaw) {
 	// the incident that needed them (ADR-0016).
 	if (!/"traces"/.test(wranglerRaw))
 		problems.push(
-			'wrangler: observability has no "traces" key — decide it explicitly ({"enabled": true} or {"enabled": false}); billing starts 2026-10-01, so silence here becomes either a blind incident or a surprise bill (ADR-0016)',
+			'wrangler: observability has no "traces" key — decide it explicitly ({"enabled": true} or {"enabled": false}); spans are billed per event once the free period ends, so silence here becomes either a blind incident or a surprise bill — current figures in docs/reference/cloudflare-primitives.md (ADR-0016)',
 		)
 	try {
 		const jsonc = wranglerRaw

@@ -84,6 +84,14 @@ rm -rf "$d"
 exit $rc
 `
 
+// Traps that assert a KEY EXISTS in a committed config cannot be proven by
+// planting a new file — the harness's usual move. They were therefore neither
+// proven nor declared unprovable: quietly trusted, under a banner reading
+// "Green means something". Move the real file aside, delete the key, run the
+// trap, restore. Cheap, and it makes the assertion real.
+const wranglerProbe = (sedExpr) =>
+	`cp wrangler.jsonc /tmp/wr.bak && sed -i.x '${sedExpr}' wrangler.jsonc && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/wr.bak wrangler.jsonc; rm -f wrangler.jsonc.x /tmp/wr.bak; exit $rc`
+
 const MUTATIONS = [
 	{
 		gate: 'ast-grep: no-date-now-in-domain',
@@ -175,6 +183,24 @@ const MUTATIONS = [
 		expect: 'thresholds',
 	},
 	{
+		gate: 'config-traps: observability block must exist',
+		files: {},
+		cmd: wranglerProbe('s/"observability"/"observability_REMOVED"/'),
+		expect: 'observability',
+	},
+	{
+		gate: 'config-traps: upload_source_maps must be true',
+		files: {},
+		cmd: wranglerProbe('s/"upload_source_maps": true/"upload_source_maps": false/'),
+		expect: 'upload_source_maps',
+	},
+	{
+		gate: 'config-traps: the traces key must be present',
+		files: {},
+		cmd: wranglerProbe('s/"traces"/"traces_REMOVED"/'),
+		expect: 'traces',
+	},
+	{
 		gate: 'config-traps: playwright reuseExistingServer must be false',
 		files: {
 			'playwright.config.ts.trap-mut': '',
@@ -246,7 +272,7 @@ const MUTATIONS = [
 		gate: 'docs-check: a price inside an immutable ADR is refused',
 		files: {},
 		cmd: docsProbe(
-			`printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/${NEXT_ADR}-probe.md`,
+			`printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $9.99/M after the cutover.\\n' > docs/decisions/${NEXT_ADR}-probe.md`,
 		),
 		expect: 'volatile figure',
 	},

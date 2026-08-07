@@ -98,7 +98,13 @@ function entry(p) {
 		' ',
 	)
 	const sup = superseded.get(basename(p).match(/^(\d{4})-/)?.[1])
-	const warn = sup ? ` · ⚠ **partially superseded** (${sup.join('; ')})` : ''
+	// A topic-less edge (`Supersedes: NNNN`) is a WHOLE supersession and must not
+	// read as partial — understating it in the one file written for an agent with
+	// no other context. The seed had no whole supersession, so this never showed.
+	const whole = sup?.some((s) => s.startsWith('→'))
+	const warn = sup
+		? ` · ⚠ **${whole ? 'superseded' : 'partially superseded'}** (${sup.join('; ')})`
+		: ''
 	return `- [${basename(p)}](${p})${level ? ` · **L${level}**` : ''}${warn}: ${note}`
 }
 
