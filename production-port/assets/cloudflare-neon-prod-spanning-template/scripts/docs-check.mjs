@@ -90,9 +90,30 @@ for (const f of stagedAll.filter(
 	}
 }
 
-// 2b. ADRs are immutable — supersede, never edit. A staged MODIFICATION to a
-// numbered ADR is flagged unless the diff is the supersession itself (adding
-// the "superseded by" status pointer).
+// 2b. ADRs are immutable — supersede, never edit. A MODIFICATION to a numbered
+// ADR is flagged unless the diff is the supersession itself.
+//
+// UNLESS THIS IS THE SEED. Immutability protects a project's decision log: once
+// an app has inherited a decision, rewriting the argument rewrites history
+// someone acted on. The TEMPLATE is not that — it is the file that PRODUCES
+// those logs, and an ADR in it has shipped to nobody. Fixing a sentence there is
+// authoring, not amendment, and forcing a supersession would make every future
+// app inherit a correction to a mistake it never saw.
+//
+// The signal is the sentinel `rename-app.mjs` clears: package.json still naming
+// the template means no app exists here yet. This was a rule I had to REMEMBER
+// to set aside, and twice did not — so it is mechanical now.
+const IS_SEED = (() => {
+	try {
+		return /"name":\s*"cloudflare-neon-prod-spanning-template"/.test(
+			readFileSync(join(ROOT, 'package.json'), 'utf8'),
+		)
+	} catch {
+		// No package.json — a scratch probe tree, not the seed. Fail toward the
+		// STRICTER rule: a missing sentinel must never be read as permission.
+		return false
+	}
+})()
 const modified = [...new Set([...gitPaths('--diff-filter=M'), ...worktree('--diff-filter=M')])]
 for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f))) {
 	const diff =
@@ -106,7 +127,7 @@ for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f)
 	// generated graph lies, and re-deciding is not what updating them means.
 	const changed = diff.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l))
 	const bodyChanged = changed.some((l) => l.slice(1).trim() !== '' && !/^[+-]>\s/.test(l))
-	if (bodyChanged && !/superseded/i.test(diff))
+	if (bodyChanged && !IS_SEED && !/superseded/i.test(diff))
 		problems.push(
 			`${f}: ADR bodies are immutable — supersede with a new ADR (the status block may change; the argument may not)`,
 		)

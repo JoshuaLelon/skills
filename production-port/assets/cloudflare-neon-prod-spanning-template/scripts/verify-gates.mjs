@@ -637,8 +637,8 @@ const MUTATIONS = [
 			},
 		],
 		[
-			'bad-id-format',
-			{ 'src/fixtures/entities/__mut_id__.ts': "export const note = { id: 'Note-1' }\n" },
+			'bad-ref-format',
+			{ 'src/fixtures/entities/__mut_ref__.ts': "export const note = { ref: 'Note-1' }\n" },
 		],
 		['accent-leak', { 'src/__mut_accent__.css': '.probe { color: #e6007a; }\n' }],
 		[

@@ -90,10 +90,10 @@ const LINE_RULES = [
 		msg: 'aria snapshots live inline — the test is the readable flow spec (skill: conventions)',
 	},
 	{
-		id: 'bad-id-format',
+		id: 'bad-ref-format',
 		where: /^src\/fixtures\/entities\//,
-		re: /\bid:\s*["'](?![a-z0-9_]+:[a-z0-9-]+["'])/,
-		msg: 'ids are type:kebab-slug, minted once, never derived from the title (skill: conventions)',
+		re: /\bref:\s*["'](?![a-z0-9_]+:[a-z0-9-]+["'])/,
+		msg: "refs are type:kebab-slug, minted once, never derived from the title — the field is `ref` because it becomes production's (owner, ref) key (skill: conventions)",
 	},
 	{
 		id: 'accent-leak',

@@ -318,10 +318,16 @@ shape, that is what accessors are for.
    deleted at the strip; `view/` (chip pickers, colour tokens) **becomes no
    table** — the files themselves survive into production as UI option data.
    "Is this a table?" is then answered by the path.
-4. **Explicit `id` on every entity; every reference by id, never by name.** Two
+4. **Explicit `ref` on every entity; every reference by ref, never by name.** Two
    entities with the same display name silently merge in a name-keyed object, and
    renaming a label — the most frequent change there is — breaks every reference.
    Legibility is what `nameOf()` is for.
+
+   It is called `ref`, not `id`, because that is what it BECOMES: production's
+   composite primary key is `(owner, ref)`, and `id` is spoken for by the uuid
+   surrogate keys (ADR-0010). Naming it here what it is there is the difference
+   between an entity file landing unedited and needing a rename on every row —
+   and the exemplar's own comment claims the former.
 
    ```ts
    // Bad — joins on rendered strings

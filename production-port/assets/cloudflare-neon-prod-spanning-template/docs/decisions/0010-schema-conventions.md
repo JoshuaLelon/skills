@@ -15,7 +15,10 @@
   `onDelete: cascade`. Global machinery tables are the only carve-outs, named in
   the schema header.
 - **Keys**: content entities use composite PK `(owner, ref)`, with `ref` a
-  `type:kebab-slug` text key carried from the fixture; a bare generated uuid only
+  `type:kebab-slug` text key carried from the fixture — which writes the field
+  under that name for this reason, so an entity file lands here unedited
+  (prototyping fixture rule 4, gated by `bad-ref-format`). `id` is reserved for
+  the uuid surrogates; a bare generated uuid only
   where no natural key exists; join tables use composite PKs of their columns.
 - **History**: one `actions` table (`subject, subjectRef, verb, source,
   before/after, at`, plus attribution), not per-entity history — the fixture's

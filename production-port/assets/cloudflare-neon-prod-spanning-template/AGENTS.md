@@ -50,7 +50,7 @@ Generated from package.json by export-stack.mjs — do not hand-edit.
 | lefthook | ^2.1.10 | dev |
 | oxlint | ^1.77.0 | dev |
 | tailwindcss | 4.3.3 | dev |
-| typescript | 5.9.3 | dev |
+| typescript | ^6.0.3 | dev |
 | vite | 8.2.0 | dev |
 | vitest | ^4.1.10 | dev |
 | wrangler | 4.118.0 | dev |
@@ -118,7 +118,7 @@ rule's own message, shortened; the whole of it prints when the rule fires.
 | `bad-locator` | role/name locators only; no test ids, css selectors, or sleeps (skill: flow tests) | gate | — |
 | `bad-test-name` | test names are verb-first and never 'should' — name the intention (skill: flow tests) | gate | — |
 | `snapshot-in-file` | aria snapshots live inline — the test is the readable flow spec (skill: conventions) | gate | — |
-| `bad-id-format` | ids are type:kebab-slug, minted once, never derived from the title (skill: conventions) | gate | — |
+| `bad-ref-format` | refs are type:kebab-slug, minted once, never derived from the title — the field is `ref` because it becomes production's (owner, ref) key (skill: conventions) | gate | — |
 | `accent-leak` | the harness accent is the pointer — nothing in the product may use it (skill: walk) | gate | — |
 | `bad-action-name` | actions are 'entity/verb' strings (skill: conventions) | gate | — |
 | `missing-states` | every primitive exports STATES so /__states never goes stale (skill: states page) | gate | — |

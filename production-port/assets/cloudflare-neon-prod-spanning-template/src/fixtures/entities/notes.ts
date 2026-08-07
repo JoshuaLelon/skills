@@ -3,7 +3,9 @@
 // never the wall clock.
 //
 // This is what a PORTED fixture looks like: the prototype writes entity files in
-// exactly this shape and they land here UNEDITED. `createdAt` stays an absolute
+// exactly this shape — same field NAMES,  included — and they land here
+// unedited. Two values still do not survive: timestamps are rebased onto the
+// seeder's now, and owner is replaced by its uuid parameter. `createdAt` stays an absolute
 // instant anchored on NOW — src/db/seed.ts rebases it onto the seeder's `now`,
 // which is the one place fixture time meets a live clock.
 //
