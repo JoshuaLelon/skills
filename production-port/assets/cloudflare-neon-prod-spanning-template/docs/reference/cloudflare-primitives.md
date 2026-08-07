@@ -36,9 +36,16 @@ Workers reuse warm connections instead of paying TCP+TLS+auth per request.
   write-heavy paths (nothing is cached); reads that must be fresh — run a second
   `caching-disabled` config for auth and post-write reads.
 - **Numbers:** free on Free and Paid. 10 configs free / 25 paid. ~20 origin
-  connections free / ~100 paid. Query max 60s. Cached response max 50 MB. Cache
-  `max_age` default 60s, **max 1 hour**. Free plan caps at 100k queries/day;
-  Paid is unlimited within the $5/mo minimum. `NOW()`/`RANDOM()` never cached.
+  connections free / ~100 paid — those are the ceilings, and the count is
+  **configurable down to a minimum of 5** when you need to leave headroom for
+  other consumers of the same database. Query max 60s. Cached response max
+  50 MB. Cache `max_age` default 60s, **max 1 hour**. Free plan caps at 100k
+  queries/day; Paid is unlimited within the $5/mo minimum. **Uncacheable:
+  every PostgreSQL `VOLATILE` *and* `STABLE` function** — so `NOW()` and
+  `RANDOM()`, but also any `STABLE` function, which since 2026-02-23 is
+  excluded too because a `STABLE` result can differ between statements in one
+  transaction. The narrower "`NOW()`/`RANDOM()` never cached" reading
+  under-predicts what will miss the cache.
 - [Docs](https://developers.cloudflare.com/hyperdrive/) ·
   [Caching](https://developers.cloudflare.com/hyperdrive/configuration/query-caching/) ·
   [Limits](https://developers.cloudflare.com/hyperdrive/platform/limits/) ·
@@ -366,6 +373,10 @@ so the destination is not optional.
 `traces.enabled` explicitly. A future `compatibility_date` will make `enabled`
 imply traces — so a routine compat bump could start billing spans on a
 logs-only Worker unless the `traces` key is declared explicitly either way.
+The mechanism has a name: **`enable_workers_observability_tracing`**, listed on
+the compatibility-flags page **with no default-on date yet**. That flag
+acquiring a date is the event to watch for, and it is greppable — which a
+sentence about "a future compatibility_date" was not.
 
 **Two trace limitations:** non-I/O spans report **0 ms** (Spectre mitigations
 stop the clock advancing without I/O — traces measure waiting, not computing),
@@ -428,7 +439,10 @@ See ADR-0022. The seam (`src/lib/ai/`) is decided; this is the route behind it.
 Proxy in front of any provider: caching, rate limiting, retries, fallback,
 logging, cost tracking. **Roughly a base-URL change inside the seam.**
 - **Don't:** requests over **25 MB** are not cacheable (large multimodal payloads
-  silently miss); Unified Billing adds a **200 req/60s per gateway** cap.
+  silently miss); Unified Billing adds a **200 req/60s per gateway** cap and a
+  **5% fee on credits purchased** ($100 of credit bills $105) — inference itself
+  is still passed through at provider list price with no markup, so the 5% is
+  the whole cost of routing spend through Cloudflare.
 - **Numbers:** 10 gateways/account Free, 20 Paid. Cache TTL max 1 month. Logs
   10M/gateway Paid, 100k/account Free; 10 MB per log. Unified billing lets
   prepaid credits pay for Workers AI too, and raises frontier-model limits
