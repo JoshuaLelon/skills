@@ -62,5 +62,9 @@ with more than it catches is worse than no rule:
 | status block present; Kind matches folder; Level present | docs-check (staged docs) |
 | design docs carry a falsifiable Built line | docs-check (staged docs) |
 | [FILL:] markers worked down over time | docs:fillins — a REPORT, by design |
+| generated docs (llms.txt, adr-graph.md) match their sources | docs-index --check, adr-graph --check |
+| ADR edges and enforcement ids resolve | adr-graph (numbering, cycles, missing rules) |
+| no price or dated deadline inside an immutable ADR | docs-check — it belongs in `reference/`, which can be corrected |
+| prose that RESTS on another doc is re-read when that doc moves | docs:tracks — a REPORT; `Tracks: path@blob`, `docs:bless` records "I looked". It proves a human looked, never that the prose is right |
 | level direction (rest on things above, never below) | JUDGMENT — deliberately ungated; graduates to a gate only after confirmed drift (see the production-port skill's docs-system reference) |
 | doc content matches reality | the fidelity audit + the ledger — no mechanical check pretends to cover this |
