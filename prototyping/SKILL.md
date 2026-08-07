@@ -164,6 +164,8 @@ docs/
 src/
   fixtures/
     now.ts          ◆ the one frozen instant every timestamp derives from
+    clock.ts        ◆ daysBefore/hoursBefore(n) — the cheap path to a derived
+                    #   timestamp, since the gate bans `new Date(` in entities/
     entities/       # becomes tables — sources.ts exports SOURCES, …
     script/         # walkthrough screenplay; notes.ts ◆ — becomes nothing
     view/           # chip lists, colour tokens — becomes nothing
@@ -201,8 +203,10 @@ scripts/strip-harness.mjs ◆  # Phase 7: deletes/unwraps every harness affordan
   array of `{ at, by, action }` rows (`at` derived from `NOW`; `by` = the owner
   or `'model'`), seeded like any entity, destined for the actions table. It is
   NOT the host's runtime dispatch log — that exists only for replay equality.
-- **Every fixture timestamp derives from `NOW`**, and flow tests install the same
-  value. One frozen instant everywhere, or determinism dies in the seams.
+- **Every fixture timestamp derives from `NOW`** — through `fixtures/clock.ts`
+  (`daysBefore(90)`), never by constructing a date, which the gate rejects inside
+  `entities/`. Flow tests install the same value. One frozen instant everywhere,
+  or determinism dies in the seams.
 - **Aria snapshots live inline in the test.** The test is the readable flow spec; a
   snapshot exiled to a `.aria.yml` file is a spec nobody reads.
 
