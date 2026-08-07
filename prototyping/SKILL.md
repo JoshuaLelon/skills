@@ -188,6 +188,7 @@ e2e/
 playwright.config.ts ◆
 scripts/gate.mjs    ◆
 scripts/strip-harness.mjs ◆  # Phase 7: deletes/unwraps every harness affordance
+scripts/sync-runtime.mjs  ◆  # `npm run sync` — has the skill moved under you?
 .githooks/pre-commit ◆
 ```
 
@@ -564,6 +565,26 @@ it fidelity: baselines catch change, not wrongness.
 For everything past the strip — stack, database, environments, static analysis,
 docs, deploy — load the **production-port** skill; its entry criteria are this
 skill's exit state.
+
+### A scaffold is a one-time copy — `npm run sync`
+
+The files an app must never edit (`host.tsx`, `walkthrough.tsx`, `states.tsx`,
+`gate.mjs`, `strip-harness.mjs`) are copied in once and then frozen in time. A
+fix made to the skill afterwards does not reach a live prototype, and nothing
+says so. That is not hypothetical: `host.tsx` once computed its effect queue and
+discarded it, so no effect ever ran; `states.tsx` looked components up by
+filename when files are kebab-case and components are PascalCase, so `/__states`
+rendered nothing at all. Both shipped for a while. Every app scaffolded before
+the fix still carried them, silently, because an app cannot fix a file it is not
+supposed to touch.
+
+`npm run sync` reports drift against the skill recorded in `.prototyping-skill`;
+`--write` takes the managed updates; `--check` exits non-zero for CI. Files the
+app is EXPECTED to diverge on — `now.ts` ("change the date, not the pattern")
+and the starter primitives — are reported but never overwritten.
+
+Run it when you pull the skill, and before a port. It is the only thing that
+closes the loop between "fixes flow up" and the apps already out there.
 
 ## Maintaining this skill
 

@@ -65,6 +65,12 @@ grep -q '.react-router' .gitignore 2>/dev/null || echo ".react-router" >> .gitig
 
 cp "$ASSETS/gate.mjs" scripts/gate.mjs
 cp "$ASSETS/strip-harness.mjs" scripts/strip-harness.mjs
+cp "$ASSETS/sync-runtime.mjs" scripts/sync-runtime.mjs
+
+# Remember where this app came from. A scaffold is a ONE-TIME COPY, so a fix
+# made to the skill afterwards never reaches a live prototype — `npm run sync`
+# is what closes that loop, and it needs to know which skill to compare against.
+printf '%s\n' "$(cd "$ASSETS/.." && pwd)" > .prototyping-skill
 cp "$ASSETS/pre-commit" .githooks/pre-commit
 chmod +x .githooks/pre-commit
 
@@ -72,6 +78,7 @@ npm pkg set \
   scripts.dev="react-router dev" \
   scripts.build="react-router build" \
   scripts.gate="react-router typegen && node scripts/gate.mjs && tsc -b" \
+  scripts.sync="node scripts/sync-runtime.mjs" \
   scripts.check="npm run gate && playwright test --pass-with-no-tests" \
   scripts.e2e="playwright test"
 
