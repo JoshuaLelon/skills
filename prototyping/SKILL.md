@@ -557,7 +557,18 @@ strip deletes both from the tree. On a clean tree
 (the script refuses otherwise): `node scripts/strip-harness.mjs` deletes
 `walkthrough.tsx` and `fixtures/script/`, unwraps every `<Mark>` and the
 `<Walkthrough>` wrapper, verifies no code-level harness reference survives, and
-reports what it touched. Add `--states` to also drop the states page (default:
+reports what it touched. It **parses** rather than text-matches, because a
+marker's `{…}` children only mean "JSX expression container" while the context
+around them is JSX — unwrapped in an expression slot (ternary branch,
+parenthesized return, arrow body, prop value, array element) `(<Mark>{row}</Mark>)`
+becomes the *object* `({row})`, which is not a syntax error and which `tsc`
+catches only by luck. So it also re-parses what it wrote and **fails loudly** if
+a file stopped parsing or gained one of those shapes. That needs the TypeScript
+compiler API: `typescript` must be installed and 6.x or older — 7 dropped
+`createSourceFile`, and the script refuses on it rather than falling back to text
+matching. A verification failure means revert and fix the codemod, never
+hand-patch the output: if one shape came out wrong, every occurrence of it did.
+Add `--states` to also drop the states page (default:
 keep it — it is useful in production too). The strip commit may carry the
 strip's blank lines unformatted — the prototype ships no formatter; the
 production toolify's biome pass owns formatting. `npm run gate &&
