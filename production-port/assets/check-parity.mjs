@@ -51,6 +51,24 @@ const PROPERTIES = [
 		test: (src) => !/localhost:5173|port:\s*5173/.test(src),
 		why: "5173 is Vite's default and therefore the port every other project on the machine is also using; pick your own",
 	},
+	// The e2e helpers are the second file pair that must DIFFER in a stated way,
+	// and for the same underlying reason as the ports: the clock follows the DATA.
+	// The prototype's fixture holds absolute instants anchored on NOW, so its
+	// browser clock must BE NOW. Production's seeder rebases those instants onto a
+	// live `now`, so its browser clock must be REAL — pinning it there put every
+	// seeded row in the browser's future, on every test, for as long as both files
+	// looked equally correct in isolation. Byte-parity cannot express "differ, in
+	// this direction, for this reason". These two can.
+	{
+		files: ["prototyping/assets/template/e2e/helpers.ts"],
+		test: (src) => /page\.clock\.install\(\s*\{\s*time:\s*NOW/.test(src),
+		why: "the prototype's data is absolute and anchored on NOW, so its browser clock must be pinned to NOW or the fixture renders against a clock its data disagrees with",
+	},
+	{
+		files: ["production-port/assets/cloudflare-neon-prod-spanning-template/e2e/helpers.ts"],
+		test: (src) => !/^(?!\s*\/\/).*page\.clock\.install/m.test(src),
+		why: "production seeds rebased onto a live clock, so the default helper must leave the browser clock REAL (the ladder's preferred rung); pin per-test instead, and seed at NOW so the server agrees",
+	},
 ];
 
 let bad = 0;

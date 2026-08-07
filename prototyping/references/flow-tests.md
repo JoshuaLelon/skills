@@ -62,6 +62,15 @@ To capture a flow you cannot reconstruct from the narration, record it:
    every fixture timestamp derives from, faking `Date`, timers, and `performance`
    together. A prototype depicting one Tuesday then tests as that Tuesday forever,
    with nothing to remember. The determinism rule from the port audit, paid once.
+
+   **This does not survive the port, on purpose.** The clock follows the DATA:
+   here the fixture holds absolute instants anchored on `NOW` and there is no
+   server, so the clock must BE `NOW`. After the port the seeder rebases those
+   same instants onto a live `now`, so production's helper leaves the clock real
+   — pinning it there would put every seeded row in the browser's future. Do not
+   "fix" the divergence in either direction; `check-parity.mjs` asserts both
+   halves. A ported flow test that genuinely needs the pin takes it per-test and
+   seeds at `NOW`, where the rebase is the identity.
 4. **Every test starts from a URL and a fresh page.** Addressable states (the audit
    rule) mean a flow deep in the app starts at its address, not at the end of another
    flow's clicks. A client-side prototype resets on reload, so isolation is free now;

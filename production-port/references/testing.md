@@ -32,17 +32,40 @@ is more machinery and less purity:
    precondition.)
 2. `vi.setSystemTime()` — component tests.
 3. **Seed the data relative to the anchor, leave the clock real** — preferred
-   for e2e "overdue" cases.
-4. `page.clock` — browser-level pinning (the flow-test helper already does this).
+   for e2e "overdue" cases, and now the DEFAULT: entity files hold instants
+   anchored on `NOW`, `rebase()` in `src/db/seed.ts` shifts them onto the
+   seeder's `now`, and `e2e/helpers.ts` leaves the browser clock alone.
+4. `page.clock` — browser-level pinning, **per-test, before `goto()`**. Not the
+   default: the helper pinned every test to `NOW` while the server seeded
+   against the real clock, which put every seeded row in the browser's *future*.
 5. Call the scheduled job's `evaluate(state, now)` directly.
 6. A guarded `x-test-now` header — last resort: refuses in production, and each
    use carries a written justification in the test.
 
-One subtlety from the field: a **frozen** clock broke ordering tests whose
-`ORDER BY at` needed distinct timestamps — the fixture anchor plus *real
-elapsed time* (`ANCHOR + (Date.now() - suiteStart)`) keeps a total order while
-staying anchored. And anchor the suite to a fixed *weekday* — routine fixtures
-written for a Tuesday flake on Wednesdays if seeding anchors to the wall clock.
+Rung 3 was unbuildable until the fixture and the seeder spoke the same dialect.
+While the seeder took hand-written `offsetMs`, "seed the data relative to the
+anchor" had no expression — the shipped exemplar's offsets were `0` and `+1000`,
+which is the *future*. Most "time tests" are state tests in disguise, and this is
+what makes that true here: an overdue row sorts to the top because it was seeded
+overdue, and the real clock gives the right answer.
+
+**Where rungs 3 and 4 meet.** `rebase(x, NOW)` is the identity, so a test that
+pins the browser to `NOW` *and* seeds at `NOW` snaps the whole system back to
+absolute-anchored mode through the same code path — no second seeder, no branch.
+That is the lever for the calendar cases below.
+
+Two subtleties from the field, both about what rebasing does NOT preserve:
+
+- A **frozen** clock broke ordering tests whose `ORDER BY at` needed distinct
+  timestamps — the fixture anchor plus *real elapsed time*
+  (`ANCHOR + (Date.now() - suiteStart)`) keeps a total order while staying
+  anchored. Rebasing keeps ordering for free (it is a uniform shift; asserted in
+  `seed.test.ts`), because the authored instants are already distinct.
+- **Weekday fidelity does not survive a rebase.** Anchor the suite to a fixed
+  *weekday* — routine fixtures written for a Tuesday flake on Wednesdays — but
+  note that shifting onto a live `now` moves every row's weekday with it. A
+  fixture whose meaning depends on *which day it is*, rather than on how old the
+  row is, is exactly the case that takes rung 4 plus seeding at `NOW`.
 
 ## Isolation: owner-scoped, not reset
 

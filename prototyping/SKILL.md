@@ -531,7 +531,8 @@ mechanics in `references/flow-tests.md`; the shape in brief:
   narrated. Role/name locators only; each "it says this" is a scoped
   `toMatchAriaSnapshot` (structure and copy, not pixels — restyling is not a flow
   change and must not fail the suite); `page.clock.install` pins the fixture's
-  frozen date.
+  frozen date — in the prototype, where the data is absolute. Production's helper
+  leaves the clock real because its seeder rebases (references/flow-tests.md).
 - Run `npx playwright test --ui` (watch mode) while iterating, and the plain suite
   after every LLM-driven change set. **This is how "the moment a flow changes, you
   know" actually happens — an unrun suite knows nothing.**
