@@ -58,6 +58,19 @@ depended on humans remembering. Encode them as the *only* paths that exist:
   vanishes there (the observed symptom was a 404ing route on demo only).
   `compatibility_date` DOES inherit and must stay top-level-only — a demo on a
   different compat date is a demo of different behaviour.
+- **BINDINGS do not inherit either — the same trap, one level up, and worse.**
+  A missing var vanishes as a string; a missing binding vanishes as a
+  *capability*. Verified by building both environments and diffing the
+  generated config: with `hyperdrive` declared only at the top level,
+  `CLOUDFLARE_ENV=demo npm run build` emits `"hyperdrive": []`, so demo falls
+  through to `DATABASE_URL` and stops exercising the data path production uses
+  — a demo of different behaviour, arrived at silently. Every environment needs
+  its **own** Hyperdrive config (pointed at that env's Neon branch); sharing
+  production's would make "demo" a second name for production's data.
+  What DOES inherit, verified the same way: `observability` (including the
+  `traces` sub-block), `upload_source_maps`, `compatibility_date`.
+  Enforced: `check-config-traps` fails on any binding present at the top level
+  and absent from an env block.
 - **Secrets vs vars vs test-only:** secret → `wrangler secret put` (per env);
   non-secret deployable → `vars`; test-only (`TEST_CONTEXT`, dev-user bypass) →
   `.dev.vars` only, gated to fail closed when `ENVIRONMENT=production`.
