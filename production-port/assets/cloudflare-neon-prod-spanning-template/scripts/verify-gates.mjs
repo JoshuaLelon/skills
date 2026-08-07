@@ -190,7 +190,7 @@ const MUTATIONS = [
 		gate: 'docs-check: a price inside an immutable ADR is refused',
 		files: {},
 		cmd: docsProbe(
-			`printf '# ADR-${'0024'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/0024-probe.md`,
+			`printf '# ADR-${'0025'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/0025-probe.md`,
 		),
 		expect: 'volatile figure',
 	},
@@ -198,7 +198,7 @@ const MUTATIONS = [
 		gate: 'docs-check: an ADR with no volatile figure stays silent (negative control)',
 		files: {},
 		cmd: docsProbe(
-			`printf '# ADR-${'0024'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nPrices live in the reference.\\n' > docs/decisions/0024-probe.md`,
+			`printf '# ADR-${'0025'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nPrices live in the reference.\\n' > docs/decisions/0025-probe.md`,
 		),
 		expectClean: true,
 	},

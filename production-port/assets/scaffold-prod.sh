@@ -90,12 +90,26 @@ for f in "$SPAN_DOCS"/decisions/[0-9]*.md; do
   [ -f "docs/decisions/$b" ] || cp "$f" docs/decisions/
 done
 
+# Adoption dates. `Updated:` on a seed ADR means "when THIS app adopted the
+# seed" — which is now. The seed ships [FILL: adoption date] and, left alone,
+# every app inherits 23 unfilled markers and a dating discipline that is purely
+# decorative. Status-block-only edits, which docs-check permits by design.
+TODAY="$(date +%F)"
+for f in docs/decisions/[0-9]*.md; do
+  [ -f "$f" ] || continue
+  sed -i.bak "s/\*\*Updated:\*\* \[FILL: adoption date\]/**Updated:** $TODAY/" "$f" && rm -f "$f.bak"
+done
+
 # The lookup table those ADRs cite. It ships INTO the app because the citations
 # are relative — `../reference/cloudflare-primitives.md` resolves only if it is
 # here, and a dangling pointer in every ported app is what the skill-only copy
 # used to be.
-[ -f docs/reference/cloudflare-primitives.md ] \
-  || cp "$SPAN_DOCS/reference/cloudflare-primitives.md" docs/reference/
+# cloudflare-primitives.md is the lookup behind the selection ADRs;
+# measurements.md holds the figures ADR-0017 and ADR-0019 argue from. Both are
+# cited relatively from decisions/, so a missing one is a dangling pointer.
+for r in cloudflare-primitives measurements; do
+  [ -f "docs/reference/$r.md" ] || cp "$SPAN_DOCS/reference/$r.md" docs/reference/
+done
 
 # The code those ADRs promise (log door, error taxonomy, screen boundary) —
 # sourced from the spanning template, the single canonical copy.

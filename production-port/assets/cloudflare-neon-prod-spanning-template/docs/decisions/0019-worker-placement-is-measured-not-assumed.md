@@ -4,7 +4,7 @@
 > **Level:** 4 — mechanism
 > **Constrained by:** 0001
 > **Enforced by:** none — judgement
-> **Applies to:** cloudflare, neon
+> **Tracks:** ../reference/measurements.md@beb089c
 > **Scope:** decides where the Worker executes relative to the database. Does not
 > decide connection pooling (Hyperdrive, ADR-0001) or cold start (ADR-0017).
 
@@ -34,30 +34,14 @@ nothing.
 
 ## Context
 
-The measurement, taken by counting statements in the seed app's query paths
-(`src/db/queries.server.ts`, `src/db/seed.ts`, and each screen's loader/action).
-A drizzle `db.transaction()` over `node-postgres` issues `BEGIN` and `COMMIT` as
-their own statements, and every statement is awaited in sequence:
-
-| Route | Statements | Sequential round trips |
-|---|---|---|
-| `/notes` loader | `seedFixture` (3) + `listNotes` (1) | **4** |
-| `/notes` action — create | `BEGIN` + 2 inserts + `COMMIT` | **4** |
-| `/notes` action — complete | `BEGIN` + update…returning + insert + `COMMIT` | **4** |
-| `/capture` webhook | `ensureUser` (1) + create transaction (4) | **5** |
-| `/note/:ref` loader | `noteOf` | 1 |
-| `/health` | `select 1` | 1 |
-
-**Four of the six routes — including every route a user actually exercises —
-make four or five sequential round trips.** Cloudflare documents per-query
-latency dropping from 20–30 ms to 1–3 ms when the Worker sits next to the pool,
-so on `/notes` that is roughly 80–120 ms of serial database wait against
-4–12 ms. The two single-query routes gain nothing, and that is fine: they are
-`/health` and a detail view.
+The count is per-route sequential awaited round trips, and on this app four of
+the six routes — every route a user actually exercises — make four or five. The
+table, and the latency arithmetic that follows from it, are in
+`../reference/measurements.md`; they describe the exemplar, which ADR-0013
+deletes at port completion, so they cannot live in an immutable file.
 
 Hyperdrive does **not** already solve this. It removes *connection setup* round
 trips by pooling near the database; it does not remove *per-query* round trips.
-Each of the four statements above still crosses from the Worker to the pool.
 Placement is what shortens that leg.
 
 ## Alternatives declined

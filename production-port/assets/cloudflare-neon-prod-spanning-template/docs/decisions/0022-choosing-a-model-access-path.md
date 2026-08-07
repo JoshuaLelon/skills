@@ -4,7 +4,6 @@
 > **Level:** 3 — architecture
 > **Constrained by:** 0012
 > **Enforced by:** ast-grep:one-door-model
-> **Applies to:** any
 > **Supersedes:** 0001#ai-gateway
 > **Scope:** decides how the app reaches a model. ADR-0012 decided the *seam*
 > (`src/lib/ai/`, one door, provider DTOs stop there) and that is unchanged —

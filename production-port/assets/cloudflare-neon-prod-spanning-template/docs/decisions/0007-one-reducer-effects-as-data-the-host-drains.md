@@ -4,7 +4,6 @@
 > **Level:** 3 — architecture
 > **Constrained by:** 0003
 > **Enforced by:** depcruise:store-is-pure, ast-grep:no-inline-promise-in-use
-> **Applies to:** react-router
 > **Scope:** pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.
 
 ## Decision

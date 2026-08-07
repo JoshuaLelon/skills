@@ -2,7 +2,7 @@
 
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 3 — architecture
-> **Constrained by:** 0001, 0010
+> **Constrained by:** —
 > **Enforced by:** depcruise:no-bcrypt
 > **Applies to:** any
 > **Scope:** pre-decided for the Cloudflare+Neon stack (production-port skill seed). Diverge by superseding with a new ADR and a §2 row — never by editing this one.

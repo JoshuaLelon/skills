@@ -22,7 +22,7 @@
 - [0007-one-reducer-effects-as-data-the-host-drains.md](docs/decisions/0007-one-reducer-effects-as-data-the-host-drains.md) · **L3**: One reducer, effects as data, the host drains
 - [0008-errors-two-tier-rr8-boundaries-a-typed-taxonomy-.md](docs/decisions/0008-errors-two-tier-rr8-boundaries-a-typed-taxonomy-.md) · **L3**: Errors: two-tier RR8 boundaries, a typed taxonomy, platform capture
 - [0009-logging-one-door-one-flat-json-object-platform-i.md](docs/decisions/0009-logging-one-door-one-flat-json-object-platform-i.md) · **L4** · ⚠ **partially superseded** (traces → ADR-0016): Logging: one door, one flat JSON object, platform-indexed
-- [0010-schema-conventions.md](docs/decisions/0010-schema-conventions.md) · **L3**: Schema conventions
+- [0010-schema-conventions.md](docs/decisions/0010-schema-conventions.md) · **L3**: Ownership, keys and history: the shape every entity takes
 - [0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md](docs/decisions/0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md) · **L4** · ⚠ **partially superseded** (release → ADR-0020): CI runs the cheap half, honestly; deploys are scripted and manual
 - [0012-seams-decided-in-advance.md](docs/decisions/0012-seams-decided-in-advance.md) · **L3**: Seams decided in advance
 - [0013-the-walking-skeleton.md](docs/decisions/0013-the-walking-skeleton.md) · **L3**: The walking skeleton: no pattern ships unexecuted
@@ -36,6 +36,7 @@
 - [0021-runtime-parity-in-tests.md](docs/decisions/0021-runtime-parity-in-tests.md) · **L4**: Runtime parity: the integration tier runs in workerd, against the production build
 - [0022-choosing-a-model-access-path.md](docs/decisions/0022-choosing-a-model-access-path.md) · **L3**: Model access: the seam is decided, the route to the model is not
 - [0023-choosing-an-edge-request-primitive.md](docs/decisions/0023-choosing-an-edge-request-primitive.md) · **L3**: The edge: settle a concern before your code pays for it
+- [0024-drizzle-column-conventions.md](docs/decisions/0024-drizzle-column-conventions.md) · **L4**: Column conventions: types, enums, jsonb, naming
 - [README.md](docs/decisions/README.md): Decisions (ADRs)
 - [adr-template.md](docs/decisions/adr-template.md): ADR-[FILL: NNNN] — [FILL: decision, stated as the choice made]
 
@@ -43,3 +44,4 @@
 
 - [adr-graph.md](docs/reference/adr-graph.md) · **L3**: the decision tree, derived from every ADR's status block. Do not edit — run `npm run docs:adr-graph`. Edges live in the ADRs.
 - [cloudflare-primitives.md](docs/reference/cloudflare-primitives.md) · **L4**: what each primitive is, when to reach for it, when not to, and the numbers that decide. The DECISIONS about how to choose live in the ADRs that cite this file; this is the lookup table, and it moves when Cloudflare moves.
+- [measurements.md](docs/reference/measurements.md) · **L4**: the numbers behind ADR-0017 (cold start) and ADR-0019 (placement). The DECISIONS those numbers support live in the ADRs; the numbers live here because they describe THIS app and change when it does.

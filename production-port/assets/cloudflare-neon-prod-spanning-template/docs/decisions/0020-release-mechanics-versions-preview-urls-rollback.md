@@ -4,7 +4,6 @@
 > **Level:** 4 — mechanism
 > **Constrained by:** 0011
 > **Enforced by:** none — judgement
-> **Applies to:** cloudflare
 > **Supersedes:** 0011#release
 > **Scope:** decides what happens around `wrangler deploy`. ADR-0011 decided
 > deploys are scripted and manual, not CI-triggered, and that still holds —

@@ -55,11 +55,40 @@ for (const f of readdirSync(join(ROOT, DECISIONS)).sort()) {
 		constrainedBy: list(field(text, 'Constrained by')),
 		enforcedBy: list(field(text, 'Enforced by')).filter((e) => !/^none\b/i.test(e)),
 		judgement: /^none\b/i.test(field(text, 'Enforced by') ?? ''),
-		appliesTo: list(field(text, 'Applies to')),
+		declaredAxes: list(field(text, 'Applies to')),
 		supersedes: list(field(text, 'Supersedes')),
 	})
 }
 const byNum = new Map(adrs.map((a) => [a.n, a]))
+
+// -- axes, DERIVED -----------------------------------------------------------
+// `Applies to:` was hand-declared on every ADR and promptly contradicted itself:
+// ADR-0004 claimed `any` while resting on ADR-0001, which dies with Cloudflare.
+// Six such pairs. Two fields that must agree, maintained by hand, is the exact
+// shape this repo mechanizes away everywhere else.
+//
+// A ROOT introduces its axes. Everything else INHERITS the union of its parents
+// and may only NARROW — Drizzle rests on the Neon half of ADR-0001 and does not
+// die with Cloudflare, so it says so, and widening is a gate failure. Prune sets
+// are computed from the result, which is the one thing they must get right:
+// inheriting too much would delete an ADR that should merely be re-examined.
+const axesOf = (a, seen = new Set()) => {
+	if (a.axes) return a.axes
+	if (seen.has(a.n)) {
+		a.axes = new Set(a.declaredAxes)
+		return a.axes
+	}
+	seen.add(a.n)
+	const parents = a.constrainedBy.filter((c) => /^\d{4}$/.test(c)).map((c) => byNum.get(c))
+	if (!parents.length) {
+		a.axes = new Set(a.declaredAxes.length ? a.declaredAxes : ['any'])
+		return a.axes
+	}
+	a.inherited = new Set(parents.flatMap((p) => (p ? [...axesOf(p, seen)] : [])))
+	a.axes = a.declaredAxes.length ? new Set(a.declaredAxes) : a.inherited
+	return a.axes
+}
+for (const a of adrs) axesOf(a)
 
 // Level docs above the ADRs. Absent in the template — they arrive from the
 // prototype at port time (port-from-prototype carries reference/design/plans),
@@ -120,7 +149,15 @@ for (const a of adrs) {
 			problems.push(`${a.file}: Enforced by '${e}' names no rule or script that exists`)
 	if (!a.enforcedBy.length && !a.judgement)
 		problems.push(`${a.file}: no **Enforced by:** — state a rule id or 'none — judgement'`)
-	if (!a.appliesTo.length) problems.push(`${a.file}: no **Applies to:** axis`)
+	if (a.inherited && a.declaredAxes.length) {
+		const wider = a.declaredAxes.filter((ax) => !a.inherited.has(ax) && !a.inherited.has('any'))
+		if (wider.length)
+			problems.push(
+				`${a.file}: **Applies to:** claims [${wider}], which no ADR it rests on carries [${[...a.inherited]}] — an ADR cannot outlive what constrains it. Narrow it, or drop the edge that is a citation rather than a constraint.`,
+			)
+	}
+	if (!a.constrainedBy.length && !a.declaredAxes.length)
+		problems.push(`${a.file}: a root ADR must declare **Applies to:** — it introduces its axes`)
 }
 // cycles
 {
@@ -138,12 +175,24 @@ for (const a of adrs) {
 }
 
 // -- report (no exit code) ---------------------------------------------------
+// Level direction ("rest on things above, never below") guards DOC ROT in the
+// intent → law → behaviour chain: a stable doc that depends on a volatile one
+// rots when the volatile one changes. Between DECISIONS the relation is
+// different — an architecture decision resting on a mechanism decision is a
+// genuine dependency, not a coupling smell, and every one of the ten this
+// reported was of that kind. Scoped to edges that leave decisions/, where the
+// rule was designed to apply. (The one real content defect it surfaced —
+// ADR-0010 mixing ownership doctrine with Drizzle column syntax — was fixed by
+// splitting the ADR, not by relabelling it.)
 const inversions = []
 for (const a of adrs)
 	for (const c of a.constrainedBy) {
-		const t = /^\d{4}$/.test(c) && byNum.get(c)
-		if (t && Number(t.level) > Number(a.level))
-			inversions.push(`${a.file} (L${a.level}) rests on ADR-${c} (L${t.level}) — below itself`)
+		if (/^\d{4}$/.test(c)) continue
+		const p = join(ROOT, DECISIONS, c)
+		const up = existsSync(p) ? readFileSync(p, 'utf8') : null
+		const lvl = up?.match(/\*\*Level:\*\*\s*(\d)/)?.[1]
+		if (lvl && Number(lvl) > Number(a.level))
+			inversions.push(`${a.file} (L${a.level}) rests on ${c} (L${lvl}) — below itself`)
 	}
 const claimed = new Set(
 	adrs.flatMap((a) => a.enforcedBy.map((e) => e.split(':').slice(1).join(':'))),
@@ -154,7 +203,7 @@ const unclaimed = [
 ].sort()
 
 // -- generate ----------------------------------------------------------------
-const axes = [...new Set(adrs.flatMap((a) => a.appliesTo))].sort()
+const axes = [...new Set(adrs.flatMap((a) => [...a.axes]))].sort()
 const kids = (n) => adrs.filter((a) => a.constrainedBy.includes(n))
 
 const tree = (a, depth, out, seen) => {
@@ -198,7 +247,7 @@ for (const a of adrs.filter((x) => !x.constrainedBy.length)) {
 lines.push('## Prune sets — diverge from an axis, delete its column', '')
 lines.push('| axis | ADRs that die with it |', '| --- | --- |')
 for (const ax of axes) {
-	const hit = adrs.filter((a) => a.appliesTo.includes(ax)).map((a) => a.n)
+	const hit = adrs.filter((a) => a.axes.has(ax)).map((a) => a.n)
 	lines.push(`| \`${ax}\` | ${hit.length ? hit.map((n) => `ADR-${n}`).join(', ') : '—'} |`)
 }
 lines.push('')

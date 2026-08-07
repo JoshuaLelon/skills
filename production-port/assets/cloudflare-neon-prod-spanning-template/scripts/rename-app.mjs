@@ -4,7 +4,7 @@
 // fails until this has run, so it cannot be forgotten.
 //
 //   node scripts/rename-app.mjs my-app
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const name = process.argv[2]
 if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
@@ -32,6 +32,30 @@ w = w.replaceAll(
 	'"id": "00000000000000000000000000000000" /* [FILL: npx wrangler hyperdrive create] */',
 )
 writeFileSync('wrangler.jsonc', w)
+
+// ADR adoption dates. The seed ships `Updated: [FILL: adoption date]` on every
+// ADR and nothing ever filled one in — 23 unfilled markers, a dating discipline
+// that was purely decorative. `Updated:` on a seed ADR means "when THIS app
+// adopted the seed", which is exactly now, so stamp it rather than asking.
+// Status-block-only edits, which docs-check permits by design.
+{
+	const today = new Date().toISOString().slice(0, 10)
+	let stamped = 0
+	for (const f of readdirSync('docs/decisions').sort()) {
+		if (!/^\d{4}-.+\.md$/.test(f)) continue
+		const p = `docs/decisions/${f}`
+		const before = readFileSync(p, 'utf8')
+		const after = before.replace(
+			/\*\*Updated:\*\* \[FILL: adoption date\]/,
+			`**Updated:** ${today}`,
+		)
+		if (after !== before) {
+			writeFileSync(p, after)
+			stamped++
+		}
+	}
+	if (stamped) console.log(`rename-app: stamped ${stamped} ADR adoption date(s) as ${today}`)
+}
 
 // llms.txt head: reset to the app (regenerate below picks up the doc tree)
 const l = readFileSync('llms.txt', 'utf8')

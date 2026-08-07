@@ -4,7 +4,6 @@
 > **Level:** 3 — architecture
 > **Constrained by:** 0009
 > **Enforced by:** script:config:traps
-> **Applies to:** cloudflare
 > **Supersedes:** 0009#traces
 > **Tracks:** ../reference/cloudflare-primitives.md@77076ff
 > **Scope:** decides how much observability to buy and when to add the next

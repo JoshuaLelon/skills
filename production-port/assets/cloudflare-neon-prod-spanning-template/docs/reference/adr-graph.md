@@ -20,27 +20,33 @@ cannot go stale; removing the opportunity beats detecting the failure.
 
 - **ADR-0001** (L4) — Cloudflare for everything that runs; Neon for everything that persists
   - **ADR-0002** (L4) — Drizzle, not Prisma
-    - **ADR-0010** (L3) — Schema conventions
-      - **ADR-0004** (L3) — Sessions in HTTP-only cookies; auth checks server-side
-      - **ADR-0006** (L4) — Tests pin confirmed flows; four levels by environment need
-        - **ADR-0021** (L4) — Runtime parity: the integration tier runs in workerd, against the production build
-  - **ADR-0003** (L4) — React Router 8, framework mode
-    - **ADR-0007** (L3) — One reducer, effects as data, the host drains
-    - **ADR-0008** (L3) — Errors: two-tier RR8 boundaries, a typed taxonomy, platform capture
-    - **ADR-0012** (L3) — Seams decided in advance
-      - **ADR-0017** (L4) — Cold start is budgeted: bundle size and startup CPU are gates, not trivia
-      - **ADR-0022** (L3) — Model access: the seam is decided, the route to the model is not
+    - **ADR-0024** (L4) — Column conventions: types, enums, jsonb, naming
   - **ADR-0009** (L4) — Logging: one door, one flat JSON object, platform-indexed
     - **ADR-0016** (L3) — Observability depth: logs answer "what happened", traces "what was slow"
   - **ADR-0011** (L4) — CI runs the cheap half, honestly; deploys are scripted and manual
     - **ADR-0020** (L4) — Release mechanics: a deploy you can preview, split, and undo
   - **ADR-0014** (L3) — Storage: Postgres is the floor, not the ceiling
   - **ADR-0015** (L3) — Deferred work: climb the ladder only when the rung breaks
+  - **ADR-0017** (L4) — Cold start is budgeted: bundle size and startup CPU are gates, not trivia
   - **ADR-0018** (L4) — Generated config types are verified, not trusted
   - **ADR-0019** (L4) — Worker placement is measured, and this app's hot routes justify a Hint
+  - **ADR-0021** (L4) — Runtime parity: the integration tier runs in workerd, against the production build
   - **ADR-0023** (L3) — The edge: settle a concern before your code pays for it
 
+- **ADR-0003** (L4) — React Router 8, framework mode
+  - **ADR-0007** (L3) — One reducer, effects as data, the host drains
+  - **ADR-0008** (L3) — Errors: two-tier RR8 boundaries, a typed taxonomy, platform capture
+
+- **ADR-0004** (L3) — Sessions in HTTP-only cookies; auth checks server-side
+
 - **ADR-0005** (L3) — Time is an argument; test time comes from data first
+
+- **ADR-0006** (L4) — Tests pin confirmed flows; four levels by environment need
+
+- **ADR-0010** (L3) — Ownership, keys and history: the shape every entity takes
+
+- **ADR-0012** (L3) — Seams decided in advance
+  - **ADR-0022** (L3) — Model access: the seam is decided, the route to the model is not
 
 - **ADR-0013** (L3) — The walking skeleton: no pattern ships unexecuted
 
@@ -48,9 +54,9 @@ cannot go stale; removing the opportunity beats detecting the failure.
 
 | axis | ADRs that die with it |
 | --- | --- |
-| `any` | ADR-0004, ADR-0005, ADR-0006, ADR-0012, ADR-0013, ADR-0022 |
-| `cloudflare` | ADR-0001, ADR-0003, ADR-0009, ADR-0011, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021, ADR-0023 |
-| `neon` | ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0019 |
+| `any` | ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0012, ADR-0013, ADR-0022 |
+| `cloudflare` | ADR-0001, ADR-0009, ADR-0011, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021, ADR-0023 |
+| `neon` | ADR-0001, ADR-0002, ADR-0014, ADR-0019, ADR-0024 |
 | `react-router` | ADR-0003, ADR-0007, ADR-0008 |
 
 ## Partial supersessions
@@ -92,4 +98,5 @@ alongside it; these edges are why an untouched file is not the last word.
 | ADR-0021 | *judgement* |
 | ADR-0022 | `ast-grep:one-door-model` |
 | ADR-0023 | *judgement* |
+| ADR-0024 | *judgement* |
 

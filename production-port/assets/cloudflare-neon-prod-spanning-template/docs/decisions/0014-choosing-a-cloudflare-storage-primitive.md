@@ -4,7 +4,6 @@
 > **Level:** 3 — architecture
 > **Constrained by:** 0001
 > **Enforced by:** none — judgement
-> **Applies to:** cloudflare, neon
 > **Scope:** decides HOW to pick a store for a new kind of data. ADR-0001 chose
 > the primary store and stays the default. Deferred execution is ADR-0015.
 
