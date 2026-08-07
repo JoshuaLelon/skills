@@ -33,8 +33,8 @@
 			"*.ts",
 			"!**/*.d.ts",
 			"!drizzle",
-			"!src/_port/**",
-			"!e2e/_port/**"
+			"!src/_port",
+			"!e2e/_port"
 		]
 	}
 }
