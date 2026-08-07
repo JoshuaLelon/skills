@@ -104,6 +104,14 @@ console.log("scaffold: tailwind + @ alias wired (shadcn preflight ready)");
 '
 
 
+# Let react-router's CLI add whatever runtime deps it wants (currently `isbot`)
+# HERE, not on the user's first `npm run gate`. Observed failure: typegen adds a
+# dep and triggers its own install, which prunes node_modules mid-tree — the very
+# next command in the same gate run then dies on a missing @react-router/dev.
+# Doing it during the scaffold means the reconcile install below sees the final
+# package.json, so the first gate is a read-only operation.
+npx react-router typegen || true
+
 # Reconcile: the vite template's dependency set churns; a final plain install
 # guarantees the tree matches package.json regardless of ordering effects.
 npm install
