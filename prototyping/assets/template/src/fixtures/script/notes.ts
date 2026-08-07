@@ -11,7 +11,8 @@ export interface Note {
   text: string // do this
   expect: string // expect this — include the why when the why is the design
   flow?: string // narrative this note belongs to, e.g. 'tuesday' — walked in order
-  kind?: 'do' | 'absence' // absence = the load-bearing thing that ISN'T there; no marker
+  kind?: 'do' | 'absence' // absence = the load-bearing thing that ISN'T there;
+  //                          marked HOLLOW, on the spot where it would be
   when?: (s: State) => boolean // only show when reachable (e.g. a grouped row exists)
   outcomes?: { input: string; expect: string }[] // the possibility map for this control
 }

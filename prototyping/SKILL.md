@@ -180,7 +180,7 @@ src/
                     #   byte-identical to production's; add yours beside them
   screens/          # L3 — composition only
   states.tsx        ◆ /__states — auto-collects STATES via import.meta.glob
-  walkthrough.tsx   ◆ <Walkthrough> strip + <Mark> markers
+  walkthrough.tsx   ◆ <Walkthrough> drawer + <Mark> markers
   main.tsx          ◆ states route + StrictMode + Walkthrough (overwritten)
 e2e/
   helpers.ts        ◆ test/expect with the clock pre-pinned to NOW
@@ -419,43 +419,73 @@ Physically, with the user. Note what feels *wrong*, not what looks wrong — loa
 `references/walk-critique.md` for the seven failure families that are invisible in
 prose and obvious in use.
 
-The harness ships in the scaffold (`src/walkthrough.tsx`, already wrapping the app
-in `main.tsx`). Using it is two moves: write the notes into
+The harness ships in the scaffold (`src/walkthrough.tsx`, already wrapping the
+app in `root.tsx`). Using it is two moves: write the notes into
 `src/fixtures/script/notes.ts` as `{ id, target, text, expect, … }` — never as
 prose in markup — and wrap each control a note references in `<Mark note="n1">`.
-The strip (one note at a time, `‹ 3/6 ›`), the single glowing marker,
-scroll-to-marker on step, the exactly-one-marker assertion, and the kill switch
-are built in.
+One note at a time (`‹ 3/6 ›`), the single marker, scroll-to-marker on step, the
+exactly-one-marker assertion, and the kill switch are built in.
+
+**It is a drawer docked beside the content column, vertically centred** — not a
+strip along the bottom. The bottom strip cost a saccade the full height of the
+window between the instruction and the control it named, which is the rulebook
+problem again in a different axis. Vertical centring is what makes the dock
+work: `<Mark>` scrolls the active marker to `block: 'center'`, so the marked
+control and the note describing it land on the same line and the eye travels
+sideways. Collapsing tucks the panel toward its tab rather than sliding it to
+the viewport edge — beside-the-content and edge-of-screen are different places
+once the column is narrower than the window.
 
 **The harness's whole job is working memory** — it exists because a real
 walkthrough reported "the notes at the bottom and the numbers everywhere are
 getting overwhelming." Every affordance trades screen pixels for what the walker
-would otherwise have to hold in their head, disclosed progressively (the strip
-shows one line; `+` opens the rest):
+would otherwise have to hold in their head, disclosed progressively:
 
 - **Outcome maps** — a note can carry `outcomes: [{ input, expect }]`: the full
-  possibility table for the marked control, on demand. "What will each input get
-  me" is answerable *before* acting instead of by trial.
-- **Flows** — notes with a `flow` key group into narratives; the strip gets a flow
-  picker and per-flow progress. A fully-walked flow is, verbatim, the spec its
-  locked test is written from.
-- **Unwalked count** — the harness tracks which notes this session has stepped
-  through and shows what remains. Coverage of the walk stops being a thing anyone
-  has to remember.
-- **Action trail** — the last few dispatched actions, read from the host's
-  replay log. "What just happened" survives a distraction.
-- **Absence notes** — `kind: 'absence'` renders with zero markers (asserted): the
-  load-bearing thing that *isn't* there, stated where it isn't.
+  possibility table for the marked control, **one at a time** behind its own
+  `‹ 1/3 ›`. A five-row table answered "what will each input get me" by making
+  you read five rows to find the one you were about to try; a possibility map
+  that costs as much working memory as trial and error is not saving any. Its
+  disclosure control lives *inside* the block it discloses, not in a footer
+  across the panel.
+- **Flows** — notes with a `flow` key group into narratives; the header gets a
+  flow picker. A fully-walked flow is, verbatim, the spec its locked test is
+  written from.
+- **Absence notes** — `kind: 'absence'` marks **where the missing thing would
+  be**, drawn as a hollow dashed outline instead of the solid glow. They used to
+  assert *zero* markers, on the reasoning that you cannot glow a thing that is
+  not there — which left the walker reading a note and hunting for a control it
+  never pointed at. An absence has a location: the overdue badge that is not in
+  the day header, the `0/8` that is not on the group header. So the invariant is
+  now unconditional — **every note has exactly one marker** — and a rule with no
+  exceptions cannot be satisfied by pointing at nothing.
 - **Reachability** — a note with a `when(state)` predicate hides until the state
   it describes exists; a note about grouped rows is noise until a grouped row does.
 
-The design it encodes, so it never gets argued back out (it took two rounds to
-find): a numbered list of notes **is a rulebook**, and superscripts everywhere make
-you scan for numbers instead of looking at the interface — so one note, one marker,
-and the accent colour *is* the pointer (nothing in the product may use it). The
-markers register against components at render, never `querySelector` paths into
-product markup — or renaming one class breaks the notes and the regression suite at
-once. Notes-as-data pays three times: the strip renders them, the marker assertion
+Four rules the layout encodes, so they do not get argued back out — each was
+found by walking it, not by reasoning about it:
+
+1. **The accent is the pointer, and its budget is two uses**: the marker glow,
+   and the position counts. The harness once spent it on its own border, tab,
+   select, four arrow boxes and the outcome text, and read as louder than the
+   app it was describing. If everything is the pointer, nothing is. Scaffolding
+   is signalled by the **dashed edge** — a separate, deliberately neutral signal.
+2. **The panel is a fixed height, and so is the outcome block in both states.**
+   A vertically-centred panel whose height tracks its content moves BOTH edges,
+   sliding the `‹ ›` out from under the cursor that just clicked them. A control
+   you must re-find after every use is worse than one further away. The cost is
+   dead space under a short note; the benefit is a walk you can click through
+   without moving your hand.
+3. **Hit area is not the visible box.** The steppers are borderless glyphs with
+   a 32×30 target. A bare `‹` is roughly 7×15px — and these are the most-clicked
+   controls in the harness, where every miss costs a re-aim.
+4. **One note, one marker.** A numbered list of notes *is* a rulebook, and
+   superscripts everywhere make you scan for numbers instead of looking at the
+   interface. Markers register against components at render, never
+   `querySelector` paths into product markup — or renaming one class breaks the
+   notes and the regression suite at once.
+
+Notes-as-data pays three times: the drawer renders them, the marker assertion
 checks them, and flow tests are transcribed from them.
 
 Two judgments stay yours while walking:

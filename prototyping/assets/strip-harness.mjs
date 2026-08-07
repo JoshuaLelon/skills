@@ -74,6 +74,20 @@ function unwrap(text, tag) {
 	return out;
 }
 
+// A marker wrapped around a control passed as a prop —
+//   wrapCheck={(el) => <Mark note="n1">{el}</Mark>}
+// — unwraps to `(el) => {el}`, whose braces are no longer a JSX expression
+// container but a FUNCTION BODY: it returns undefined, so the wrapped control
+// silently disappears. TypeScript accepts it, so nothing downstream catches it.
+// Collapse the artifact back to a concise-body arrow.
+//
+// Deliberately narrow: only an arrow whose entire body is a single bare
+// identifier in braces. `(x) => { doThing() }` and anything with a statement is
+// left alone, because only the JSX-container form can produce this shape.
+function fixArrowBodies(text) {
+	return text.replace(/=>\s*\{\s*([A-Za-z_$][\w$]*)\s*\}/g, "=> $1");
+}
+
 function* walk(rel) {
 	for (const name of readdirSync(join(ROOT, rel))) {
 		if (["node_modules", "dist", ".git"].includes(name)) continue;
@@ -91,7 +105,7 @@ for (const file of existsSync(join(ROOT, "src")) ? walk("src") : []) {
 		.filter((l) => !/import\s.*from\s+['"][./]*\.?\.?\/?walkthrough(\.tsx)?['"]/.test(l))
 		.filter((l) => !/import\s.*from\s+['"].*fixtures\/script\//.test(l))
 		.join("\n");
-	after = unwrap(unwrap(after, "Mark"), "Walkthrough");
+	after = fixArrowBodies(unwrap(unwrap(after, "Mark"), "Walkthrough"));
 	if (STRIP_STATES) {
 		after = after
 			.split("\n")
