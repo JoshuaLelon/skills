@@ -184,6 +184,14 @@ and the per-screen accessor→loader swap (same signatures; ADR-0012).
 - **Cloudflare work** (wrangler commands, Workers config, Hyperdrive, DOs):
   load the `wrangler` / `cloudflare` / `workers-best-practices` skills first —
   they bias to current docs over training data, which this stack churns past.
+- **Choosing a Cloudflare primitive** — the seed uses Hyperdrive and nothing
+  else, which is a default, not a prohibition. The selection rules are ADRs:
+  storage (0014), deferred work (0015), observability depth (0016), model
+  access (0022), edge request handling (0023) — each answering "if you need X,
+  reach for Y" rather than naming one blessed choice.
+  `references/cloudflare-primitives.md` is the lookup table behind them: what
+  each primitive is, the condition that should stop you, and the limits that
+  actually decide. Its numbers are dated — re-verify before committing.
 - **Neon operations**: the `mcp__Neon__*` tools do branches
   (`create_branch`, `reset_from_parent`), connection strings, slow queries
   (`list_slow_queries`), and SQL directly — use them instead of hand-running
@@ -196,7 +204,9 @@ and the per-screen accessor→loader swap (same signatures; ADR-0012).
 Three tiers: **local** (Docker), **demo** (Neon branch off prod, copy-on-write,
 throwaway, separate Worker), **prod** (Neon main). Full matrix, deploy scripts,
 and the Cloudflare footguns — `CLOUDFLARE_ENV` at *build* time, non-inheriting
-`vars`, never a bare `wrangler deploy` — in `references/environments.md`.
+`vars` **and bindings**, never a bare `wrangler deploy` — in
+`references/environments.md`. Release mechanics around the deploy itself
+(preview URLs, gradual rollout, rollback) are ADR-0020.
 `.dev.vars.example` (shipped) is the manifest: every var the app reads, listed,
 each with its failure mode.
 
