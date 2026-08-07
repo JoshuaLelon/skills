@@ -23,9 +23,9 @@ that window:
 
 | mechanism | lines | verdict |
 | --- | --- | --- |
-| stability levels + dependency direction (`check-levels`) | 292 | **wait** — misfired on scratch dirs, self-admits it can't distinguish churn signal from authoring noise yet; an earlier stricter version flagged 79 false positives and zero real inversions |
+| stability levels + dependency direction (`check-levels`) | 292 | **superseded** — it INFERRED edges from churn and filesystem shape, which is where the 79 false positives and zero real inversions came from. `adr-graph` reads DECLARED `Constrained by:` edges instead, so there is nothing to guess; its first run found 10 inversions, all real. A report, not a gate |
 | seam register two-way vs depcruise (`check-seams`) | 159 | **wait** — date-arithmetic state machine guarding a 65-line table with no demonstrated drift |
-| freshness `Tracks: path@hash` + `--bless` | 128 | **maybe** — genuinely clever (blob-hash pin + explicit "I looked" trail), but opt-in coverage; adopt scoped to `reference/` docs extracted from design docs, when those exist |
+| freshness `Tracks: path@hash` + `--bless` | 128 | **ADOPTED** — the condition ("scoped to `reference/` docs extracted from design docs, when those exist") was met when the ADR selection-menus were extracted into `docs/reference/cloudflare-primitives.md`. Ships as `docs:tracks` / `docs:bless`, a REPORT: the pin proves a human looked, never that the prose is right |
 | rules-index deriving enforcement tables | 245 | the *derivation* found a real hole (zero `.tsx` reach); the mechanism is replaced here by `verify:gates`, which proves reach directly instead of documenting it |
 
 The docs system's real, proven win was catching **confabulated documentation**
@@ -47,6 +47,28 @@ written for the third time, that's the signal to build the report.
   status line both ways.
 - Cite from code as `ADR-NNNN` where the decision constrains the code —
   `docs:check` keeps citations resolving, and an ast-grep rule's `message` is a
-  fine place for one.
-- The decisions README is the index; a new ADR updates it in the same commit
-  (co-change check catches the miss).
+  fine place for one. **That check shipped broken and this file asserted it
+  anyway**: it matched `/ADR-(\d{4})/` against filenames that are `NNNN-slug.md`,
+  so the known-ADR set was always empty and every citation resolved to "does not
+  exist" — a 100% false positive, masked because the template sits in a
+  subdirectory of the skills repo and every path lookup silently missed. Fixed,
+  with a negative control (`expectClean`) in verify-gates, because a planted
+  violation alone cannot tell a working rule from one that flags everything.
+- **The index is generated, not the README.** `llms.txt` (docs-index) lists
+  every doc; `docs/reference/adr-graph.md` (adr-graph) is the decision tree,
+  derived from the status-block edges. The decisions README is four lines of
+  process rules and lists nothing — an earlier version of this bullet claimed
+  otherwise, which is the confabulation class this system exists to catch,
+  appearing in the file that describes the system.
+- Status blocks carry machine-readable edges: `Constrained by:` (continuing the
+  L0→L1→L2 chain down into L3/L4, which the ADRs previously broke),
+  `Enforced by:` (checked both ways — a named rule must exist, and a rule no ADR
+  claims is reported), `Applies to:` (prune sets on stack divergence, computed),
+  `Supersedes: NNNN#topic` (partial supersession rendered against the older
+  entry in llms.txt, so an immutable file that reads wrong on its own is marked
+  without being edited).
+- An ADR's **body** is immutable; its **status block** is not. The block was
+  always mutable — the superseded-by pointer lives there — and edges must stay
+  current or the generated graph lies.
+- No prices or dated deadlines inside `decisions/`. They belong in `reference/`,
+  which can be corrected when they move; an immutable file cannot be.

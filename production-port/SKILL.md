@@ -24,13 +24,24 @@ footguns were documented three times and enforced zero times; the fix that
 worked was an npm script. When you find yourself writing a warning, write a
 script or a gate instead.
 
-**The architecture is pre-decided.** The scaffold copies an accepted ADR seed
-(0001–0013: CF+Neon+Hyperdrive, Drizzle, RR8, sessions, injectable clock,
-test levels, effects-as-data, the error taxonomy, single-door logging, schema
-conventions, cheap-half CI, pre-drawn seams, the walking skeleton) plus the code those ADRs promise (`lib/log.ts`,
-`lib/errors.ts`, `<ScreenError>`). `references/architecture.md` is the
-coordination map — every decision names what it exists for and what depends on
-it. The architecture conversation is "where do you diverge?", answered as a
+**The architecture is pre-decided.** The scaffold copies an accepted ADR seed —
+CF+Neon+Hyperdrive, Drizzle, RR8, sessions, injectable clock, test levels,
+effects-as-data, the error taxonomy, single-door logging, schema conventions,
+cheap-half CI, pre-drawn seams, the walking skeleton, then the platform
+decisions (storage, deferred work, observability depth, cold start, config-type
+drift, placement, release mechanics, runtime parity, model access, the edge) —
+plus the code those ADRs promise (`lib/log.ts`, `lib/errors.ts`,
+`<ScreenError>`).
+
+**`docs/reference/adr-graph.md` is the coordination map, and it is generated.**
+Every ADR declares `Constrained by:` / `Enforced by:` / `Applies to:` /
+`Supersedes:` in its status block, and `npm run docs:adr-graph` derives the tree,
+the per-axis prune sets, and the partial-supersession table from those edges.
+Do not count the ADRs by hand or describe the tree in prose — read the generated
+file; a number written here would be wrong within a week, which is how this
+paragraph previously came to say "0001–0013" of what is now a larger set.
+
+The architecture conversation is "where do you diverge?", answered as a
 superseding ADR + a §2 row — never a blank page and never drift.
 
 ## Checkpoints — stop and ask

@@ -57,7 +57,9 @@ production-port/
   references/           architecture, environments, testing, react-patterns, docs-system
   assets/
     cloudflare-neon-prod-spanning-template/   the walking skeleton (see its README)
-    adr-seed → docs/    13 pre-accepted ADRs every app inherits
+                        (the ADR seed, docs conventions and the primitives
+                        lookup all live in the spanning template — one copy;
+                        scaffold-prod.sh copies from it, never re-authors)
     configs/, scripts/  the divergence path (scaffold-prod.sh) + shared tooling
     check-parity.mjs    cross-template byte-identity guard
 ```

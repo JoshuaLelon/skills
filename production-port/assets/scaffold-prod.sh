@@ -32,7 +32,8 @@ cp "$ASSETS"/ast-grep/rules/*.yml ast-grep/rules/
 # files shared with the PROTOTYPING skill and never covered this pair.
 SPAN_SCRIPTS="$ASSETS/cloudflare-neon-prod-spanning-template/scripts"
 for s in verify-gates db-push-guard docs-check docs-index docs-fillins \
-         check-llmstxt-spec export-stack check-config-traps check-startup check-runner; do
+         check-llmstxt-spec export-stack check-config-traps check-startup check-runner \
+         adr-graph docs-tracks; do
   cp "$SPAN_SCRIPTS/$s.mjs" scripts/
 done
 
@@ -66,21 +67,35 @@ mkdir -p docs/decisions docs/design docs/reference docs/plans docs/conventions
 # generalizable content lives in this template and the skill's references;
 # the masters at ~/workspace/epic-*.md remain the source to re-distill from.
 [ -f AGENTS.md ] || cp "$ASSETS/docs/AGENTS-template.md" AGENTS.md
-[ -f docs/decisions/README.md ] || cat > docs/decisions/README.md <<'EOF'
-# Decisions (ADRs)
 
-Immutable once accepted; supersede, never edit. Files: `ADR-NNNN-slug.md`,
-copied from `adr-template.md`. Cite from code as `ADR-NNNN` — docs-check
-verifies citations resolve.
-EOF
-[ -f docs/decisions/adr-template.md ] || cp "$ASSETS/docs/adr-template.md" docs/decisions/
+# -- everything below is COPIED from the spanning template, never re-authored --
+# There were three copies of the docs conventions (here as a heredoc, the
+# template's, and the skill's reference) and two of the ADR seed. They had
+# already drifted: the heredoc still described `docs-check` as freezing the
+# whole ADR file and listed none of the status-block edges. One canonical copy,
+# in the template, the same fix the scripts got.
+SPAN_DOCS="$ASSETS/cloudflare-neon-prod-spanning-template/docs"
+
+[ -f docs/conventions/documentation.md ] \
+  || cp "$SPAN_DOCS/conventions/documentation.md" docs/conventions/
+[ -f docs/decisions/README.md ] || cp "$SPAN_DOCS/decisions/README.md" docs/decisions/
+[ -f docs/decisions/adr-template.md ] || cp "$SPAN_DOCS/decisions/adr-template.md" docs/decisions/
 
 # The pre-decided architecture (ADR seed, accepted): the conversation starts
-# from "here's what's decided; where do you diverge?", not a blank page.
-for f in "$ASSETS"/docs/adr-seed/*.md; do
+# from "here's what's decided; where do you diverge?", not a blank page. The
+# tree they form is DERIVED — docs:adr-graph regenerates it from the edges each
+# ADR declares, so nothing here states a count or a dependency in prose.
+for f in "$SPAN_DOCS"/decisions/[0-9]*.md; do
   b="$(basename "$f")"
   [ -f "docs/decisions/$b" ] || cp "$f" docs/decisions/
 done
+
+# The lookup table those ADRs cite. It ships INTO the app because the citations
+# are relative — `../reference/cloudflare-primitives.md` resolves only if it is
+# here, and a dangling pointer in every ported app is what the skill-only copy
+# used to be.
+[ -f docs/reference/cloudflare-primitives.md ] \
+  || cp "$SPAN_DOCS/reference/cloudflare-primitives.md" docs/reference/
 
 # The code those ADRs promise (log door, error taxonomy, screen boundary) —
 # sourced from the spanning template, the single canonical copy.
@@ -90,52 +105,6 @@ for f in lib/log.ts lib/errors.ts components/screen-error.tsx; do
   [ -f "src/$f" ] || cp "$SPAN/$f" "src/$f"
 done
 [ -f src/db/seed.ts ] || cp "$ASSETS/template-prod/src/db/seed.ts" src/db/seed.ts
-[ -f docs/conventions/documentation.md ] || cat > docs/conventions/documentation.md <<'EOF'
-# Documentation
-
-Two axes, both required on every doc.
-
-**Lifecycle — the folder.** "Where does this go" is answered by the path:
-
-- `decisions/` — immutable ADRs (supersede, never edit)
-- `design/`    — living specs: how it should behave
-- `reference/` — living statements of fact
-- `plans/`     — time-bounded work; delete when done
-- `conventions/` — how we work
-
-**Level — the stability tree**, in each doc's status block. Intent at the top,
-implementation at the bottom; **a document may rest on things ABOVE it, never
-below** — fast layers may couple to slow ones; the reverse is what rots.
-
-| L | what | changes when |
-| --- | --- | --- |
-| 0 | intent — what this is for, the spiky points of view | you change your mind about the product |
-| 1 | law — invariants a feature would be a bug to violate | a law turns out to be wrong |
-| 2 | behaviour — how the objects behave | a feature is redesigned |
-| 3 | architecture — the shape behaviour requires | a boundary moves |
-| 4 | mechanism — stack, runtime, practice | a dependency or tool changes |
-| 5 | in flight | constantly |
-
-These docs began life in the prototyping phase (intent → invariants → designs)
-and continue here — never restart them. Every file opens with a status block:
-`Kind / Status / Updated / Level / Built (design docs; falsifiable) / Scope
-(including what it does NOT cover) / Constrained by`.
-
-Every invariant of this system, with its enforcement stated — a rule credited
-with more than it catches is worse than no rule:
-
-| invariant | enforced by |
-| --- | --- |
-| llms.txt generated, never edited | docs-index --check (pre-commit + CI) |
-| doc add/delete/rename updates llms.txt same-commit | docs-check (staged) |
-| ADR citations in code resolve | docs-check (staged) |
-| ADRs immutable; only legal edit is the superseded-by pointer | docs-check (staged) |
-| status block present; Kind matches folder; Level present | docs-check (staged docs) |
-| design docs carry a falsifiable Built line | docs-check (staged docs) |
-| [FILL:] markers worked down over time | docs:fillins — a REPORT, by design |
-| level direction (rest on things above, never below) | JUDGMENT — deliberately ungated; graduates to a gate only after confirmed drift (see the production-port skill's docs-system reference) |
-| doc content matches reality | the fidelity audit + the ledger — no mechanical check pretends to cover this |
-EOF
 
 # -- dependencies + wiring ----------------------------------------------------
 npm install -D @biomejs/biome oxlint @ast-grep/cli dependency-cruiser knip lefthook vitest
@@ -157,16 +126,23 @@ npm pkg set \
   scripts.lint="biome check . && oxlint && ast-grep scan" \
   scripts.lint:arch="depcruise src --config .dependency-cruiser.cjs" \
   scripts.lint:dead="knip" \
-  scripts.docs:check="node scripts/docs-check.mjs && node scripts/docs-index.mjs --check" \
+  scripts.docs:check="node scripts/docs-check.mjs && node scripts/docs-index.mjs --check && node scripts/adr-graph.mjs --check && node scripts/docs-tracks.mjs" \
   scripts.docs:index="node scripts/docs-index.mjs" \
+  scripts.docs:adr-graph="node scripts/adr-graph.mjs" \
+  scripts.docs:tracks="node scripts/docs-tracks.mjs" \
+  scripts.docs:bless="node scripts/docs-tracks.mjs --bless" \
   scripts.docs:fillins="node scripts/docs-fillins.mjs" \
   scripts.config:traps="node scripts/check-config-traps.mjs" \
+  scripts.types="wrangler types" \
+  scripts.types:check="wrangler types --check" \
+  scripts.check:startup="npm run build && node scripts/check-startup.mjs" \
   scripts.test="vitest run --passWithNoTests" \
   scripts.verify:gates="node scripts/verify-gates.mjs" \
   scripts.db:push="node scripts/db-push-guard.mjs" \
-  scripts.check="npm run docs:check && npm run config:traps && npm run lint && npm run lint:arch && npm run lint:dead && npm run gate && npm run test && playwright test --pass-with-no-tests"
+  scripts.check="npm run docs:check && npm run config:traps && npm run types:check && npm run lint && npm run lint:arch && npm run lint:dead && npm run gate && npm run test && npm run check:startup && playwright test --pass-with-no-tests"
 
 node scripts/docs-index.mjs
+node scripts/adr-graph.mjs
 
 # Lefthook supersedes the prototype's hand-rolled hook — its lefthook.yml
 # includes everything the old .githooks/pre-commit ran (gate + flow suite).
