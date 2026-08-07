@@ -5,7 +5,7 @@
 > **Constrained by:** 0001
 > **Enforced by:** script:check:startup, script:config:traps
 > **Applies to:** cloudflare
-> **Tracks:** ../reference/measurements.md@beb089c
+> **Tracks:** ../reference/measurements.md@58ce1f5
 > **Scope:** decides how module-scope cost is kept honest. Does not decide
 > request-time latency, which is placement (ADR-0019).
 

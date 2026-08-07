@@ -78,3 +78,36 @@ trips by pooling near the database; it does not remove *per-query* round trips.
 **The number that matters is sequential awaited round trips per request, and it
 changes silently** — adding one lookup to a loader moves a route up this table
 without touching any config.
+
+## Placement, measured against a deployed Worker (ADR-0019)
+
+Two versions of the same build uploaded to the same Worker, one with
+`placement: { region: "aws:us-east-1" }` and one without, measured on `/health`
+— the SINGLE-query route — 30 interleaved samples each after warm-up, from a
+laptop:
+
+| | median | min | p90 |
+| --- | --- | --- | --- |
+| no placement | 128.1 ms | 69.8 | 239.1 |
+| `aws:us-east-1` | 137.1 ms | 83.1 | 321.8 |
+
+**Placement did not help, and trended slightly worse.** That is ADR-0019's own
+prediction, now measured rather than reasoned: *"If a request makes exactly one
+query, placement moves the round trip; it does not remove it, and end-to-end
+latency is unchanged."* Without the Hint the Worker runs near the client and
+makes one long hop to the database; with it, the client makes the long hop and
+the query is short. Same distance travelled once — and the Hint adds the
+handshake at distance, which is the small penalty visible above.
+
+**What this does NOT measure: the multi-round-trip case, which is the whole
+argument for the Hint.** `/health` is one query. The routes ADR-0019 says
+benefit (`/notes`, `/capture` — four and five sequential trips) are
+owner-scoped, so measuring them needs an authenticated session against a
+production deployment. Until that is done, the Hint's benefit remains a
+prediction; what is now established is that the no-gain half of the prediction
+is correct, and that client-side timing cannot see the database leg at all
+(the laptop→edge RTT dominates both columns).
+
+Re-measure server-side — `duration_ms` on the wide event (ADR-0009) excludes the
+client network entirely and is the right instrument for this.
+

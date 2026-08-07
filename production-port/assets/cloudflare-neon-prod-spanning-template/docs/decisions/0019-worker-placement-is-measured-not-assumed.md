@@ -4,7 +4,7 @@
 > **Level:** 4 — mechanism
 > **Constrained by:** 0001
 > **Enforced by:** none — judgement
-> **Tracks:** ../reference/measurements.md@beb089c
+> **Tracks:** ../reference/measurements.md@58ce1f5
 > **Scope:** decides where the Worker executes relative to the database. Does not
 > decide connection pooling (Hyperdrive, ADR-0001) or cold start (ADR-0017).
 

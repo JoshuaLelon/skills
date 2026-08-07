@@ -203,8 +203,10 @@ page. Correct them as they are verified; add the port's own beneath.
 | `check:schema-drift` catches added/dropped/renamed tables and columns; it compares the schema FILE to migration SNAPSHOTS and cannot see a database that was `push`ed out of line | verified-by-execution | 2026-08-07 |
 | Hand-written extension DDL (`CREATE EXTENSION`) is outside the drift comparison — the snapshot format has no key for it | verified-by-execution | 2026-08-07 |
 | The Neon project `spanning-template` is in `aws-us-east-1`, so ADR-0019's placement Hint would be `aws:us-east-1` | verified-by-execution (Neon API) | 2026-08-07 |
-| `placement` stays commented out: the region is known, the BENEFIT is unmeasured — ADR-0019's round-trip counts were read from the query paths, never timed against a deployed Worker | unverified | 2026-08-07 |
-| `wrangler versions upload` / `rollback` (ADR-0020) have never been run against a real account from this template | unverified | 2026-08-07 |
+| `placement` gains nothing on a SINGLE-query route — measured on two uploaded versions of the same build, 30 samples each; median 128 ms without vs 137 ms with. ADR-0019 predicted exactly this | verified-by-execution | 2026-08-07 |
+| `placement`'s benefit on MULTI-round-trip routes — the actual argument for the Hint — is still unmeasured; those routes are owner-scoped and need an authenticated session. Client-side timing cannot see the DB leg either way | unverified | 2026-08-07 |
+| `wrangler versions upload` and versioned preview URLs (ADR-0020) work against a real account — two versions uploaded and served without touching production traffic | verified-by-execution | 2026-08-07 |
+| `wrangler rollback`, aliased previews and gradual deployments (ADR-0020's other four mechanisms) have still never been run | unverified | 2026-08-07 |
 | Cloudflare's per-event observability prices and the trace cutover date, as recorded in `docs/reference/cloudflare-primitives.md` | verified-by-docs | 2026-08-07 |
 
 [FILL: this port's own claims — anything you believe but have not run.]
