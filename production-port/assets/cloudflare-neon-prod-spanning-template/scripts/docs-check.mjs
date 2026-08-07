@@ -11,14 +11,24 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.cwd()
-const staged = execSync('git diff --cached --name-only --diff-filter=ADR', { cwd: ROOT })
-	.toString()
-	.split('\n')
-	.filter(Boolean)
-const stagedAll = execSync('git diff --cached --name-only', { cwd: ROOT })
-	.toString()
-	.split('\n')
-	.filter(Boolean)
+
+// git reports paths from the REPO root, which is not always ROOT — the spanning
+// template lives inside the skills repo, so every path arrives with a directory
+// prefix and every readFileSync below silently misses. That masked bug is why
+// this file's ADR check could ship broken: it reported OK here and failed on
+// everything in a real app. Strip the prefix; drop paths outside our subtree.
+const PREFIX = execSync('git rev-parse --show-prefix', { cwd: ROOT }).toString().trim()
+const gitPaths = (filter) =>
+	execSync(`git diff --cached --name-only ${filter}`, { cwd: ROOT })
+		.toString()
+		.split('\n')
+		.filter(Boolean)
+		.filter((p) => p.startsWith(PREFIX))
+		.map((p) => p.slice(PREFIX.length))
+		.filter(Boolean)
+
+const staged = gitPaths('--diff-filter=ADR')
+const stagedAll = gitPaths('')
 
 const problems = []
 
@@ -30,19 +40,24 @@ if (docsChanged.length && !stagedAll.includes('llms.txt')) {
 	)
 }
 
-// 2. ADR citations resolve
+// 2. ADR citations resolve. Filenames are `NNNN-slug.md` and never contain the
+// literal "ADR-" — matching /ADR-(\d{4})/ against them left this set
+// permanently empty, so the check flagged every citation in the tree.
 let adrs = new Set()
 try {
 	adrs = new Set(
 		readdirSync(join(ROOT, 'docs/decisions'))
-			.map((f) => f.match(/ADR-(\d{4})/)?.[1])
+			.map((f) => f.match(/^(\d{4})-.+\.md$/)?.[1])
 			.filter(Boolean),
 	)
 } catch {
 	/* no decisions dir yet */
 }
 for (const f of stagedAll.filter(
-	(f) => /\.(ts|tsx|mjs|md)$/.test(f) && !f.startsWith('docs/decisions/'),
+	// ast-grep rule messages (.yml), wrangler config comments (.jsonc) and the
+	// depcruise config (.cjs) all cite ADRs — an extension list that stopped at
+	// .ts/.md left the two rules that DO name an ADR unchecked.
+	(f) => /\.(ts|tsx|mjs|cjs|md|yml|yaml|jsonc)$/.test(f) && !f.startsWith('docs/decisions/'),
 )) {
 	let text = ''
 	try {
@@ -59,10 +74,7 @@ for (const f of stagedAll.filter(
 // 2b. ADRs are immutable — supersede, never edit. A staged MODIFICATION to a
 // numbered ADR is flagged unless the diff is the supersession itself (adding
 // the "superseded by" status pointer).
-const modified = execSync('git diff --cached --name-only --diff-filter=M', { cwd: ROOT })
-	.toString()
-	.split('\n')
-	.filter(Boolean)
+const modified = gitPaths('--diff-filter=M')
 for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f))) {
 	const diff = execSync(`git diff --cached -U0 -- "${f}"`, { cwd: ROOT }).toString()
 	if (!/superseded/i.test(diff))

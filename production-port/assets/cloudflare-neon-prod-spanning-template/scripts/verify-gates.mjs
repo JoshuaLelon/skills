@@ -10,6 +10,13 @@
 //
 // Each mutation: plant file(s) → run the tool → expect nonzero exit AND the
 // rule id in output → remove file(s). Never touches existing files.
+//
+// `expectClean: true` inverts it: plant VALID input and demand exit 0. That is
+// the control for the third failure above — the 100%-false-positive linter,
+// which a positive mutation alone CANNOT distinguish from a working rule (it
+// fires on the planted violation either way). The ADR-citation check shipped in
+// exactly that state. A gate that can fail open needs a violation; a gate that
+// can fail closed needs a valid input; a gate that can do both needs the pair.
 
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -116,6 +123,22 @@ const MUTATIONS = [
 		expect: 'thresholds',
 	},
 	{
+		// docs-check reads the STAGED diff, so the mutation has to stage the
+		// planted file and unstage it again whatever happens. This gate shipped
+		// broken (a filename regex that matched nothing, masked by the template
+		// sitting in a subdirectory of the skills repo); nothing proved it fired.
+		gate: 'docs-check: ADR citation resolves',
+		files: { 'src/__mut__adr.md': 'Planted: cites ADR-9999, which does not exist.\n' },
+		cmd: 'git add -f -- src/__mut__adr.md && node scripts/docs-check.mjs; rc=$?; git reset -q -- src/__mut__adr.md; exit $rc',
+		expect: 'src/__mut__adr.md: cites ADR-9999',
+	},
+	{
+		gate: 'docs-check: a VALID ADR citation stays silent (negative control)',
+		files: { 'src/__mut__adr_ok.md': 'Planted: cites ADR-0009, which exists.\n' },
+		cmd: 'git add -f -- src/__mut__adr_ok.md && node scripts/docs-check.mjs; rc=$?; git reset -q -- src/__mut__adr_ok.md; exit $rc',
+		expectClean: true,
+	},
+	{
 		gate: 'depcruise: store-is-pure',
 		files: {
 			'src/store/__mut__.ts': "import { useState } from 'react'\nexport const m = useState\n",
@@ -209,7 +232,7 @@ let failed = 0
 		const cfg = createRequire(import.meta.url)(cruiserPath)
 		for (const r of cfg.forbidden ?? []) if (r.severity === 'error') declared.add(r.name)
 	}
-	const covered = new Set(MUTATIONS.map((m) => norm(m.expect)))
+	const covered = new Set(MUTATIONS.filter((m) => m.expect).map((m) => norm(m.expect)))
 	for (const id of [...declared].sort()) {
 		if (covered.has(id)) continue
 		if (UNPROVABLE[id]) {
@@ -238,23 +261,34 @@ for (const m of MUTATIONS) {
 	}
 	for (const p of Object.keys(m.files)) if (existsSync(join(ROOT, p))) rmSync(join(ROOT, p))
 
-	const fired = !exited0 && out.includes(m.expect)
-	console.log(`${fired ? '✓' : '✗ DEAD GATE'}  ${m.gate}`)
-	if (!fired) {
+	// A negative control plants VALID input and demands silence. Without one, a
+	// check that flags everything looks identical to a check that works: the
+	// ADR-citation rule shipped matching a regex against filenames it could
+	// never match, and still "fired" on every planted violation. Any gate that
+	// can fail OPEN needs the positive; any gate that can fail CLOSED needs this.
+	const ok = m.expectClean ? exited0 : !exited0 && out.includes(m.expect)
+	const label = m.expectClean ? '✗ FALSE POSITIVE' : '✗ DEAD GATE'
+	console.log(`${ok ? '✓' : label}  ${m.gate}`)
+	if (!ok) {
 		failed++
 		console.error(
-			`   planted a violation; expected nonzero exit mentioning "${m.expect}", got ${exited0 ? 'exit 0' : 'no mention'}.`,
+			m.expectClean
+				? '   planted VALID input; expected exit 0, got a failure — the gate flags what it should accept.'
+				: `   planted a violation; expected nonzero exit mentioning "${m.expect}", got ${exited0 ? 'exit 0' : 'no mention'}.`,
 		)
 	}
 }
 
 if (failed) {
-	console.error(`\nverify-gates: ${failed} gate(s) did not fire on a planted violation.`)
+	console.error(`\nverify-gates: ${failed} check(s) failed their control.`)
 	console.error(
-		"A green gate that cannot fail is decoration. Fix the config or the rule's file globs.",
+		"A green gate that cannot fail is decoration; a gate that fails on everything is worse. Fix the config or the rule's file globs.",
 	)
 	process.exit(1)
 }
-console.log(
-	`\nverify-gates: all ${MUTATIONS.length} gates fired. They can fail, so green means something.`,
-)
+{
+	const neg = MUTATIONS.filter((m) => m.expectClean).length
+	console.log(
+		`\nverify-gates: all ${MUTATIONS.length} controls passed — ${MUTATIONS.length - neg} planted violation(s) fired, ${neg} valid input(s) stayed silent. Green means something.`,
+	)
+}
