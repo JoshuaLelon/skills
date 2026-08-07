@@ -44,6 +44,20 @@ if (
 		)
 }
 
+// 1c. AGENTS.md's generated sections need their markers, or the generators
+// write nowhere and the file silently reverts to the [FILL:] state that three
+// separate agents reported as useless.
+{
+	const src = read('AGENTS.md')
+	if (src) {
+		for (const m of ['stack-index', 'divergences'])
+			if (!src.includes(`<!-- ${m}:start -->`))
+				problems.push(
+					`AGENTS.md: no <!-- ${m}:start --> marker — its generator has nowhere to write (export-stack.mjs / adr-graph.mjs)`,
+				)
+	}
+}
+
 // 2. jsdom is over — component tests run in real Chromium; jsdom silently
 // lacks real APIs and passes tests the browser would fail.
 for (const f of readdirSync(ROOT).filter((f) => /^vitest\.config\./.test(f))) {

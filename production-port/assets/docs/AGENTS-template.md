@@ -4,12 +4,20 @@ Always-loaded rules file. It may RESTATE a fact from any doc level; it may not
 ORIGINATE one — a fact stated only here has no home that constrains it. Rules
 live here one line each; the owning doc carries the reasoning.
 
-## 0. Precedence when documents conflict
+## 0. Where to look
 
-This file > `docs/design/*.md` > the production-port skill references
-(react-patterns, testing, environments) > the playbook masters at
-`~/workspace/epic-*.md` > general knowledge.
-[FILL: adjust if the stack differs from the playbooks' assumptions]
+**`llms.txt` is the entry point** — one line per doc, with its level and scope.
+Start there, not here.
+
+This file does not outrank anything. It restates; it never originates, and a
+fact that lives only here has no doc constraining it. When it disagrees with a
+doc, the doc wins and this file is stale — an always-loaded file that could
+override `decisions/` would be a way to overturn an immutable ADR by editing a
+convenience copy of it.
+
+Reasoning lives in the owning doc: `docs/decisions/` for what was decided and
+why, `docs/reference/` for what is currently true, `docs/design/` for how it
+should behave, `docs/conventions/documentation.md` for how the docs work.
 
 ## 1. Stack
 
@@ -19,13 +27,13 @@ package.json — never hand-write versions; the hand-written version listed six
 uninstalled packages within days]
 <!-- stack-index:end -->
 
-## 2. Divergences from the playbooks
+## 2. Divergences from the seed
 
-Where this app deliberately departs from the playbooks' defaults, with the
-reason. (The playbooks assume: Prisma, Conform+Zod, MSW, password auth,
-progressive enhancement — diverge knowingly, and write it down here.)
+Every ADR that supersedes a seed decision — this app departing from what it
+inherited. Generated from the `Supersedes:` edges; run `npm run docs:adr-graph`.
 
-[FILL: the divergence table for this app]
+<!-- divergences:start -->
+<!-- divergences:end -->
 
 ## 3. Banned patterns
 

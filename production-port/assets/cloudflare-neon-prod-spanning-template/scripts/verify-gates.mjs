@@ -201,6 +201,12 @@ const MUTATIONS = [
 		expect: 'traces',
 	},
 	{
+		gate: 'config-traps: AGENTS.md generator markers must exist',
+		files: {},
+		cmd: `cp AGENTS.md /tmp/ag.bak && sed -i.x 's/<!-- divergences:start -->/<!-- REMOVED -->/' AGENTS.md && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/ag.bak AGENTS.md; rm -f AGENTS.md.x /tmp/ag.bak; exit $rc`,
+		expect: 'divergences:start',
+	},
+	{
 		gate: 'config-traps: playwright reuseExistingServer must be false',
 		files: {
 			'playwright.config.ts.trap-mut': '',
