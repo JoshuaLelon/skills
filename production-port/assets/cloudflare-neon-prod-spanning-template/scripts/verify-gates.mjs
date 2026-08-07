@@ -233,7 +233,11 @@ const MUTATIONS = [
 	{
 		gate: 'docs-tracks: a stale pin fails --check',
 		files: {},
-		cmd: `printf '\\n<!-- probe -->\\n' >> docs/reference/measurements.md; node scripts/docs-tracks.mjs --check; rc=$?; git checkout -- docs/reference/measurements.md; exit $rc`,
+		// Restore by COPY, not `git checkout --`: in a freshly scaffolded app the
+		// file has never been committed, so checkout silently restores nothing and
+		// the probe survives into the app. scaffold-prod runs verify-gates as its
+		// last step, so this shipped a mutated doc into every scaffolded repo.
+		cmd: `cp docs/reference/measurements.md /tmp/meas.bak && printf '\\n<!-- probe -->\\n' >> docs/reference/measurements.md; node scripts/docs-tracks.mjs --check; rc=$?; cp /tmp/meas.bak docs/reference/measurements.md; rm -f /tmp/meas.bak; exit $rc`,
 		expect: 'stale',
 	},
 	{
