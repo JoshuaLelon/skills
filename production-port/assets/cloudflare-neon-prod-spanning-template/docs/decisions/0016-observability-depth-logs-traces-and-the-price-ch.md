@@ -5,7 +5,7 @@
 > **Constrained by:** 0009
 > **Enforced by:** script:config:traps
 > **Supersedes:** 0009#traces
-> **Tracks:** ../reference/cloudflare-primitives.md@a2a4203
+> **Tracks:** ../reference/cloudflare-primitives.md@b3295bb
 > **Scope:** decides how much observability to buy and when to add the next
 > layer. ADR-0009 decided the log SHAPE (one wide event, one flat JSON object)
 > and still holds; this decides the layers around it.

@@ -15,6 +15,7 @@
 		"db:reset": "docker compose down -v && npm run db:up && npm run db:migrate",
 		"db:up": "docker compose up -d --wait",
 		"deploy": "npm run check && npm run build && wrangler deploy",
+		"deploy:demo": "npm run check && CLOUDFLARE_ENV=demo npm run build && wrangler deploy",
 		"deploy:preview": "npm run check && npm run build && wrangler versions upload",
 		"dev": "react-router dev",
 		"docs:adr-graph": "node scripts/adr-graph.mjs",

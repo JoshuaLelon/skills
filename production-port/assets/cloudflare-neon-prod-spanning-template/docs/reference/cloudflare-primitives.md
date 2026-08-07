@@ -281,11 +281,19 @@ Actions for screenshots/PDFs/scrape.
 
 - **Reach for it:** server-rendered PDFs or OG images from your own HTML;
   scraping sites that need JS; smoke tests against a deployed app.
-- **Don't:** when fetch + parse would do — **the most expensive primitive here
-  per unit of work**; sessions over 10 min. Always `browser.close()` in a
-  `finally` — leaked browsers burn the quota.
+- **Don't:** when fetch + parse would do — still the most expensive primitive
+  here per unit of work, though by less than it was (see Kitesurf below);
+  sessions over 10 min. Always `browser.close()` in a `finally` — leaked
+  browsers burn the quota.
 - **Numbers:** Free 10 min/day, 3 concurrent. Paid: 10 browser hours/mo included
-  then $0.09/hr; **120 concurrent**; 60s timeout extendable to 10 min.
+  then $0.09/hr; **120 concurrent**; 60s timeout extendable to 10 min. Billing is
+  by browser-time, so the CPU/memory profile of the browser you pick decides how
+  much of that hour a job consumes.
+- **2026-08-06 — Kitesurf**, a browser built for agentic use, claims **3–7×
+  less CPU and memory than Chromium** on the same work. That does not change the
+  per-hour price, and it does not make this cheap; it does mean a
+  "too expensive, use fetch instead" judgement formed before this date was
+  formed against a worse baseline and is worth re-testing rather than inherited.
 - [Docs](https://developers.cloudflare.com/browser-run/) ·
   [Limits](https://developers.cloudflare.com/browser-run/limits/) ·
   [Pricing](https://developers.cloudflare.com/browser-run/pricing/)
@@ -545,14 +553,26 @@ See ADR-0020 (release) and ADR-0019 (placement).
 **Cloudflare CI Workflows / Artifacts.** CI pipelines defined in TypeScript on
 Workflows, with Artifacts (Git-compatible versioned storage) as the source of
 truth, plus an AI self-healing example that pushes fixes to a
-`ci-autofix/<run-id>` branch. It is **private beta**, needs bindings for
-artifacts, workflows, containers, durable objects and R2, and requires moving
-repo hosting to Artifacts. Its stated problem — *"CI/CD for millions of repos,
-on your platform"* — is a platform vendor's, not this project's, and ADR-0011
-already declined auto-deploy on merge.
+`ci-autofix/<run-id>` branch.
+
+**Moved 2026-08-04, and the decision is unchanged.** It is no longer a demo:
+a CI Workflow can now be the target of an Artifacts push trigger, firing on
+every `cf.artifacts.repo.pushed` event to build, lint, typecheck, test, and
+deploy to a Worker — stopping the deploy when a check fails and scoping the API
+token to the deploy step alone. `ci.runner()` gives each step an isolated
+sandbox, and the input-hash caching below shipped as a real `cache` option.
+
+Still declined, for the reason that did not move: it needs bindings for
+artifacts, workflows, containers, durable objects and R2, and it requires
+**moving repo hosting to Artifacts**. Its stated problem — *"CI/CD for millions
+of repos, on your platform"* — is a platform vendor's, not this project's, and
+ADR-0011 already declined auto-deploy on merge on grounds (a solo project gains
+nothing, and loses the pre-deploy full `check`) that a better implementation
+does not touch.
 
 Worth stealing regardless: pipeline-as-TypeScript, and runners cached by input
-hash (`cache: { inputs: ['package.json', 'bun.lock'] }`).
+hash — no longer an idea to borrow but a shipped option,
+`cache: { inputs: ['package.json', 'bun.lock'] }`.
 
 The nearer-term answer to `check.yml`'s own TODO ("add a service container here
 when CI coverage earns its keep") is a Postgres service container in GitHub
