@@ -24,8 +24,9 @@
 		"config:traps": "node scripts/check-config-traps.mjs",
 		"types": "wrangler types",
 		"types:check": "wrangler types --check",
+		"check:startup": "npm run build && node scripts/check-startup.mjs",
 		"verify:gates": "node scripts/verify-gates.mjs",
-		"check": "npm run docs:check && npm run config:traps && npm run types:check && npm run lint && npm run lint:arch && npm run gate && npm run test && npm run test:int && npm run e2e",
+		"check": "npm run docs:check && npm run config:traps && npm run types:check && npm run lint && npm run lint:arch && npm run gate && npm run test && npm run test:int && npm run e2e && npm run check:startup",
 		"deploy": "npm run check && npm run build && wrangler deploy",
 		"port:status": "node scripts/port-from-prototype.mjs --status"
 	},
