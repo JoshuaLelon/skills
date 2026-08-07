@@ -209,8 +209,13 @@ Durable execution — each step's result persisted and independently retried.
   sub-second latency needs.
 - **Numbers:** 10,000 steps default → 25,000; `step.sleep` up to **365 days**;
   1 MiB per step result; **50,000 concurrent instances, 300 new/sec**. Idle
-  workflows incur no CPU. **Steps and storage began billing 2026-08-10** —
-  cost models from before that date are stale. $0.80 per 100k steps.
+  workflows incur no CPU. Billing for steps and storage starts **no earlier
+  than 2026-08-10** — Cloudflare's wording is a floor, not a commitment, so
+  confirm it has actually begun before pricing anything on it. Included:
+  Paid **500,000 steps/month + 1 GB-month** storage, then **$0.80 per 100k
+  steps**; Free **3,000 steps/day + 1 GB-month**, with no charge past it. The
+  included allowance is the number that decides whether a design is affordable
+  — the per-step price alone makes Workflows look costlier than it is.
 - **2026:** the V2 control-plane rearchitecture raised concurrency 4,500 →
   50,000; pre-2026 "Workflows doesn't scale for fan-out" advice is obsolete.
 - [Docs](https://developers.cloudflare.com/workflows/) ·
