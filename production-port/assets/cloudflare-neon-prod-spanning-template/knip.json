@@ -1,28 +1,8 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
-	"entry": [
-		"src/main.tsx",
-		"src/root.tsx",
-		"src/routes.ts",
-		"src/entry.client.tsx",
-		"src/states.tsx",
-		"e2e/**/*.spec.ts",
-		"scripts/*.mjs"
-	],
-	"project": [
-		"src/**",
-		"e2e/**",
-		"scripts/**"
-	],
-	"include": [
-		"files",
-		"dependencies",
-		"exports",
-		"types",
-		"duplicates"
-	],
-	"ignore": [
-		"src/_port/**",
-		"e2e/_port/**"
-	]
+	"entry": ["src/routes.ts", "src/states.tsx", "e2e/**/*.spec.ts", "scripts/*.mjs"],
+	"project": ["src/**", "e2e/**", "scripts/**"],
+	"include": ["files", "dependencies", "exports", "types", "duplicates"],
+	"ignore": ["src/_port/**", "e2e/_port/**"],
+	"tags": ["-@public"]
 }

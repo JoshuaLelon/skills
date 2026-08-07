@@ -17,9 +17,11 @@ const SERVER_SNAPSHOT: State = freshState()
 // with no handler is dropped, which keeps the reducer honest but means a typo in
 // the name fails silently. Handlers receive `dispatch` so an effect can feed a
 // result back in as a named action rather than writing state behind the store.
+/** @public — effect handler signature, implemented by apps. */
 export type FxHandler = (fx: Fx, dispatch: (a: Action) => void) => void
 const fxHandlers = new Map<string, FxHandler>()
 
+/** @public — the effect registry is API for apps; the exemplar registers none. */
 export function registerFx(name: string, handler: FxHandler): void {
 	fxHandlers.set(name, handler)
 }
@@ -50,10 +52,10 @@ export function useAppState(): State {
 	)
 }
 
-
 // Dev affordance: "what just happened". The log already exists for replay
 // equality; exposing the tail costs nothing. (The prototype's walkthrough
 // renders it; production simply never calls it.)
+/** @public — dev affordance the prototype walkthrough renders. */
 export function recentActions(n: number): Action[] {
 	return log.slice(-n)
 }

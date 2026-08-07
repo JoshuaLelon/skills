@@ -22,6 +22,7 @@
 // console.* anywhere else in src/ is gated out.
 
 type Fields = Record<string, unknown>
+/** @public — part of the wide-event contract. */
 export type Outcome = 'ok' | 'expected' | 'error'
 
 function emit(level: 'info' | 'warn' | 'error', event: string, fields: Fields = {}): void {
@@ -72,6 +73,7 @@ export function wide(event: string, base: Fields = {}): WideEvent {
 	}
 }
 
+/** @public — point events for non-request work (crons, queue consumers): ADR-0009. */
 export const log = {
 	info: (event: string, fields?: Fields) => emit('info', event, fields),
 	warn: (event: string, fields?: Fields) => emit('warn', event, fields),

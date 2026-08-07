@@ -50,7 +50,6 @@
 		"@playwright/test": "1.62.1",
 		"@react-router/dev": "8.3.0",
 		"@tailwindcss/postcss": "^4.3.3",
-		"@tailwindcss/vite": "4.3.3",
 		"@types/node": "24.10.1",
 		"@types/pg": "8.20.3",
 		"@types/react": "19.2.18",

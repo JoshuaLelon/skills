@@ -3,6 +3,7 @@
 // is the one door for "who is acting" — hiding UI is not authorization.
 import { AppError } from './errors'
 
+/** @public — the cookie name is API for tests and any sign-out route. */
 export const SESSION_COOKIE = 'session'
 
 async function hmac(secret: string, value: string): Promise<string> {

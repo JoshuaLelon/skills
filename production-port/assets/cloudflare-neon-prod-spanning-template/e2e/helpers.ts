@@ -3,6 +3,7 @@
 import { test as base, expect } from '@playwright/test'
 import { NOW } from '../src/fixtures/now'
 
+/** @public — re-exported so specs anchor on one clock import, not two. */
 export { NOW }
 
 export const test = base.extend({

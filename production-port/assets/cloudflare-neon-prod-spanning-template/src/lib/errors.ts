@@ -20,8 +20,10 @@ export class AppError extends Error {
 	}
 }
 
+/** @public — error taxonomy surface; used by app routes, not by the exemplar. */
 export const notFound = (what = 'Not found') => new AppError(404, what)
 export const forbidden = (why = 'Not allowed') => new AppError(403, why)
+/** @public — error taxonomy surface; used by app routes, not by the exemplar. */
 export const badRequest = (why = 'Bad request') => new AppError(400, why)
 
 // Wrap every loader/action body. One wide event per invocation: base fields at
