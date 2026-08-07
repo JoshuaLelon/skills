@@ -155,6 +155,21 @@ carryStaged('src/components', 'src/_port/components')
 carryStaged('src/screens', 'src/_port/screens')
 carryStaged('e2e/flows', 'e2e/_port')
 
+// The prototype ships no formatter by design — the production toolify's biome
+// pass owns formatting — so everything carried arrives 2-space-indented into a
+// tab repo, and `lint` goes red the moment this script finishes. SKILL.md
+// promised "check stays green throughout the port"; for the DIRECT-COPY set
+// that was never true, because only `_port/` staging is excluded. Format what
+// we carried, here, rather than leaving a red build and an explanation.
+// Same for llms.txt: carrying docs/ changes the doc tree, and docs-check reads it.
+for (const cmd of ['npx biome check --write src/fixtures docs', 'node scripts/docs-index.mjs']) {
+	try {
+		execSync(cmd, { cwd: ROOT, stdio: 'pipe' })
+	} catch {
+		console.error(`port: WARNING — \`${cmd}\` failed; run it by hand before \`npm run check\``)
+	}
+}
+
 console.log(`port: carried —\n  ${carried.join('\n  ')}`)
 console.log(`
 port: next, the mapping loop (one feature at a time):
@@ -168,4 +183,10 @@ port: next, the mapping loop (one feature at a time):
   5. flows: move each e2e/_port/* into e2e/flows/, re-pointing paths.
   6. delete what you mapped from _port/, and the note exemplar once its
      pattern has a real follower.
+Then delete what the port SUPERSEDES — knip will name these, and they are dead
+by design, not by accident:
+  - src/fixtures/accessors.ts   (queries.server.ts is the production accessor)
+  - src/fixtures/clock.ts       helpers  (the seeder takes now as an argument)
+  - the ACTIONS array           (it becomes a table; wire it into the seeder)
+
 Check progress: node scripts/port-from-prototype.mjs --status`)

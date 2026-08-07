@@ -10,7 +10,14 @@ verified**: `npm run check` exits 0, and the template has deployed live
 ## Starting an app (the port — production-port skill, Phase 1)
 
 ```sh
-cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template my-app
+mkdir my-app && git -C <skill-dir> archive HEAD assets/cloudflare-neon-prod-spanning-template \
+  | tar -x --strip-components=2 -C my-app            # tracked files ONLY. `cp -R` also carries
+                                                   # node_modules, build/, tsbuildinfo and
+                                                   # .wrangler/ — 675 MB of the template
+                                                   # author's caches, plus a deploy/config.json
+                                                   # pointing at THEIR Cloudflare account. All
+                                                   # gitignored at the destination, so invisible
+                                                   # in git status.
 cd my-app && node scripts/rename-app.mjs my-app   # config-traps fails until this runs
 npm install && git init && npx lefthook install
 cp .dev.vars.example .dev.vars

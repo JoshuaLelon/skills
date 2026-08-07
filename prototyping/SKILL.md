@@ -339,9 +339,20 @@ shape, that is what accessors are for.
    nothing that has a history — event logs, versions, blocking — and that question
    generated a third of the real schema.
 
-The payoff: entity arrays become seed rows 1-1, interfaces are already DTOs, and
+The payoff: entity arrays become seed rows, interfaces are already DTOs, and
 `sourceOf(id)` becomes the loader's query function with the **same signature** — so
 no screen changes when the data starts coming from Postgres.
+
+**Two fields do NOT cross 1-1, measured on a real port** — the mapping is
+mechanical but not the identity:
+- **Timestamps.** Fixtures hold absolute ISO strings anchored on the frozen
+  `NOW`; the production seeder's contract is `seedFixture(db, owner, now)` with
+  offsets RELATIVE to a passed-in now, because a seed that hardcodes 2026 is
+  wrong the moment it runs in 2027. Expect to rebase them.
+- **`owner`.** The fixture's `owner: 'owner:jlm'` is discarded: production owner
+  is a uuid FK to `users`, supplied by the seeder's parameter (ADR-0010). Keep
+  the field — it is what makes owner-scoping visible in the prototype — and know
+  it does not travel.
 
 ### Store rules — logic that ports is logic that crossed unedited
 

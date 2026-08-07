@@ -74,7 +74,14 @@ the `prototype` tag exists, the strip commit landed. The port script refuses
 without them.
 
 ```sh
-cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template <app>
+mkdir <app> && git -C <skill-dir> archive HEAD assets/cloudflare-neon-prod-spanning-template \
+  | tar -x --strip-components=2 -C <app>            # tracked files ONLY. `cp -R` also carries
+                                                   # node_modules, build/, tsbuildinfo and
+                                                   # .wrangler/ — 675 MB of the template
+                                                   # author's caches, plus a deploy/config.json
+                                                   # pointing at THEIR Cloudflare account. All
+                                                   # gitignored at the destination, so invisible
+                                                   # in git status.
 cd <app> && node scripts/rename-app.mjs <app>   # kills every template identity;
                                                # config-traps' sentinel check fails until run
 npm install && git init && npx lefthook install
@@ -94,8 +101,18 @@ The script carries the portable set deterministically: level docs and
 components, and flows land in **`_port/` staging** (files byte-identical to
 the template's shared set — primitives, host, ScreenError — are skipped
 outright), which is excluded from
-tsc, the gate, knip, biome, and playwright — so **check stays green throughout
-the port**; there is no red-hooks transition to survive.
+tsc, the gate, knip, biome, and playwright.
+
+**What that does and does not buy you.** Staging keeps the COLLIDING layers —
+store, screens, components, flows — out of every check until you map them, so
+there is no red-hooks transition to survive there. It does not cover the
+DIRECT-COPY set: fixtures and level docs land in their real homes immediately,
+because they continue rather than restart. The port script now formats what it
+carries and regenerates `llms.txt`, which removes the two mechanical failures.
+What remains is honest signal: knip will name `accessors.ts`, the `clock.ts`
+helpers and the ACTIONS array as dead, because after the port they ARE — the
+query module, the seeder's `now` argument and the actions table supersede them.
+Deleting them is a mapping step, not a workaround; the script prints the list.
 
 **The mapping loop**, one prototype feature at a time, each onto the
 exemplar's worked pattern: fixture interfaces → schema (the notes table shows
