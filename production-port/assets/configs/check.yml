@@ -18,6 +18,10 @@ jobs:
       - run: npm ci
       - run: node scripts/docs-check.mjs && node scripts/docs-index.mjs --check
       - run: node scripts/check-config-traps.mjs
+      # worker-configuration.d.ts is generated but committed; without this the
+      # Env type can describe bindings wrangler.jsonc no longer declares and
+      # tsc checks the app against a lie (ADR-0018).
+      - run: npm run types:check
       - run: npm run lint
       - run: npm run lint:arch
       - run: npm run lint:dead
