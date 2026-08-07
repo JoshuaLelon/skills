@@ -68,7 +68,7 @@
 		"lefthook": "^2.1.10",
 		"oxlint": "^1.77.0",
 		"tailwindcss": "4.3.3",
-		"typescript": "5.9.3",
+		"typescript": "^6.0.3",
 		"vite": "8.2.0",
 		"vitest": "^4.1.10",
 		"wrangler": "4.118.0"

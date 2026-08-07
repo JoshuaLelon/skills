@@ -401,6 +401,12 @@ const MUTATIONS = [
 		expectClean: true,
 	},
 	{
+		gate: 'config-traps: typescript >=7 with dependency-cruiser is refused',
+		files: {},
+		cmd: restoreProbe('package.json', 's|"typescript": "[^"]*"|"typescript": "^7.0.2"|'),
+		expect: 'does not support typescript',
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.
@@ -737,6 +743,54 @@ let failed = 0
 	const gateCovered = new Set(
 		MUTATIONS.filter((m) => m.expect && /scripts\/gate\.mjs/.test(m.cmd)).map((m) => m.expect),
 	)
+	// VACUITY, a report. A rule can be correctly written, mutation-proven, and
+	// pointed at a path that does not exist here — enforcing nothing while looking
+	// green. `strict-mode` is exactly that in this template: its `where` is
+	// ^src/(main|entry\.client)\.tsx$ and RR8 ships neither, though the PROTOTYPE
+	// template does have entry.client.tsx, so the rule is live there. gate.mjs is
+	// shared between both, so a rule seeing nothing here is not automatically a
+	// defect — which is why this reports rather than fails. Adding a file purely
+	// to satisfy it would be the chore ADR-0017 warns about.
+	{
+		const files = []
+		const walkSrc = (d) => {
+			let names = []
+			try {
+				names = readdirSync(join(ROOT, d))
+			} catch {
+				return
+			}
+			for (const n of names) {
+				if (n === 'node_modules' || n.startsWith('.')) continue
+				const rel = `${d}/${n}`
+				try {
+					readdirSync(join(ROOT, rel))
+					walkSrc(rel)
+				} catch {
+					files.push(rel)
+				}
+			}
+		}
+		for (const d of ['src', 'e2e', 'integration', 'scripts']) walkSrc(d)
+		const gateSrc = readFileSync(join(ROOT, 'scripts/gate.mjs'), 'utf8')
+		const vacuous = []
+		for (const m of gateSrc.matchAll(
+			/\bid:\s*(['"])(.+?)\1[\s\S]{0,200}?\bwhere:\s*\/(.+?)\/[gimsuy]*\s*,/g,
+		)) {
+			let re
+			try {
+				re = new RegExp(m[3])
+			} catch {
+				continue
+			}
+			if (!files.some((f) => re.test(f))) vacuous.push(`${m[2]} (${m[3]})`)
+		}
+		if (vacuous.length)
+			console.log(
+				`~  ${vacuous.length} gate rule(s) match NO file here — enforcing nothing in this tree (report only):\n     ${vacuous.join('\n     ')}`,
+			)
+	}
+
 	for (const id of gateIds) {
 		if (gateCovered.has(id)) continue
 		if (UNPROVABLE[`gate:${id}`]) {

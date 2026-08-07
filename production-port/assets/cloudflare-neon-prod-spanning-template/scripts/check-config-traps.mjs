@@ -80,6 +80,28 @@ for (const f of readdirSync(ROOT).filter((f) => /^(vitest|vite)\.config\./.test(
 const pkg = JSON.parse(read('package.json') ?? '{}')
 const scripts = pkg.scripts ?? {}
 
+// 1e. TypeScript 7 silently disarms dependency-cruiser. depcruise says so
+// itself — "Support for typescript@>=7 will follow when its API is published and
+// stable" — and falls back to a weaker resolver that "is likely to have missed
+// TypeScript sources and dependencies". The build stays GREEN while all six
+// architecture rules stop detecting violations. Measured: on 7.0.2 the whole
+// template typechecks and `tsc -b` passes, and verify-gates reports five DEAD
+// GATEs. Without this, the upgrade happens some Tuesday and the import graph
+// stops being enforced with nothing to show for it.
+// (TS 7 also removes ts.createSourceFile, which the prototyping skill's
+// strip-harness codemod needs; that script refuses on its own.)
+{
+	const ts = pkg.devDependencies?.typescript ?? pkg.dependencies?.typescript
+	const major = Number(String(ts ?? '').match(/(\d+)/)?.[1])
+	const hasDepcruise = !!(
+		pkg.devDependencies?.['dependency-cruiser'] || pkg.dependencies?.['dependency-cruiser']
+	)
+	if (hasDepcruise && major >= 7)
+		problems.push(
+			`typescript ${ts} with dependency-cruiser installed — depcruise does not support typescript >=7 and degrades SILENTLY: it misses TS sources, every architecture rule stops firing, and the build stays green. Pin typescript ^6 until depcruise ships support (its own error names the version).`,
+		)
+}
+
 // 1d. A `check:*` script that nothing runs is a gate that does not exist. The
 // CHECKS list in check-runner is the only thing that makes one real, and adding
 // a script without adding it there fails silently and permanently — the exact
