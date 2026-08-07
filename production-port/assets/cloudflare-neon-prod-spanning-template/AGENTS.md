@@ -142,6 +142,13 @@ and universal**:
   path (config-traps checks the scripts; nothing can check your fingers).
 - **Deprecated-but-working is not broken.** Prefer new forms in new code;
   never mass-rewrite working schemas or APIs to chase a deprecation list.
+- **`wrangler rollback` auto-answers YES in a non-interactive shell.** It asks
+  "Are you sure you want to deploy this Worker Version to 100% of traffic?" and,
+  with no TTY, prints `Using fallback value in non-interactive context: yes` and
+  does it. An agent or a CI step that runs rollback to *inspect* what it would do
+  has already done it. Same family as the drizzle prompt below: the dangerous
+  answer is the default. There is no --dry-run; use `wrangler deployments list`
+  to see the target first.
 - **`drizzle-kit generate` on a RENAME prompts, and its default answer destroys
   data.** It cannot tell a rename from a drop-plus-add, so it asks — and the
   pre-highlighted option is "create table", which emits DROP + CREATE. Move the
@@ -207,7 +214,10 @@ page. Correct them as they are verified; add the port's own beneath.
 | `placement`'s benefit on MULTI-round-trip routes — the actual argument for the Hint — is still unmeasured; those routes are owner-scoped and need an authenticated session. Client-side timing cannot see the DB leg either way | unverified | 2026-08-07 |
 | `wrangler versions upload` and versioned preview URLs (ADR-0020) work against a real account — two versions uploaded and served without touching production traffic | verified-by-execution | 2026-08-07 |
 | Aliased preview URLs (ADR-0020) work — `versions upload --preview-alias <name>` served a stable URL alongside the versioned one | verified-by-execution | 2026-08-07 |
-| `wrangler rollback` and gradual deployments (percentage splits, version affinity) are still unrun — both change production traffic, which this environment's permission layer blocks. Not a property of the mechanism; run them by hand to close this row | unverified | 2026-08-07 |
+| Gradual deployments (ADR-0020) work — a 50/50 split across two versions deployed in 0.97 s and production kept serving 200s throughout | verified-by-execution | 2026-08-07 |
+| `observability` is a NON-VERSIONED setting: the split synced it separately (`enabled: true`, `head_sampling_rate: 1`), so it is not carried by a version and a rollback does not restore it | verified-by-execution | 2026-08-07 |
+| `wrangler rollback` (ADR-0020) works — collapsed a 50/50 split back to a single version at 100%, production serving 200s throughout. All six of ADR-0020's mechanisms are now exercised against a real account | verified-by-execution | 2026-08-07 |
+| A rollback does NOT restore bound resources — wrangler says so itself: "will not rollback any of the bound resources (Durable Object, D1, R2, KV, etc)". ADR-0020's schema caveat is the tool's own warning | verified-by-execution | 2026-08-07 |
 | Cloudflare's per-event observability prices and the trace cutover date, as recorded in `docs/reference/cloudflare-primitives.md` | verified-by-docs | 2026-08-07 |
 
 [FILL: this port's own claims — anything you believe but have not run.]
