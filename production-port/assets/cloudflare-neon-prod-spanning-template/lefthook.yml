@@ -20,7 +20,7 @@ pre-commit:
     prototype-gate:
       run: npm run gate
     docs:
-      run: node scripts/docs-check.mjs
+      run: node scripts/docs-check.mjs --staged
     config-traps:
       run: node scripts/check-config-traps.mjs
     flows:

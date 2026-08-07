@@ -13,7 +13,7 @@
 import { spawnSync } from 'node:child_process'
 
 // Same default as drizzle.config.ts and docker-compose.yml — keep all three in step.
-const LOCAL_DEFAULT = 'postgres://postgres:local@127.0.0.1:55432/app'
+const LOCAL_DEFAULT = 'postgres://postgres:local@127.0.0.1:55433/app'
 const url = process.env.DATABASE_URL ?? LOCAL_DEFAULT
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'db'])
 

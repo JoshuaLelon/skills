@@ -8,3 +8,4 @@ playwright-report
 
 # `wrangler check startup` / check-startup.mjs artifact
 *.cpuprofile
+*.tsbuildinfo

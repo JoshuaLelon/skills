@@ -27,6 +27,7 @@
 		"lint": "biome check . && oxlint && ast-grep scan",
 		"lint:arch": "depcruise src --config .dependency-cruiser.cjs",
 		"lint:dead": "knip",
+		"lint:fix": "biome check --write . && oxlint --fix",
 		"port:status": "node scripts/port-from-prototype.mjs --status",
 		"rollback": "wrangler rollback",
 		"test": "vitest run --passWithNoTests",

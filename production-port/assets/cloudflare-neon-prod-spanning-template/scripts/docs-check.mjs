@@ -18,8 +18,8 @@ const ROOT = process.cwd()
 // this file's ADR check could ship broken: it reported OK here and failed on
 // everything in a real app. Strip the prefix; drop paths outside our subtree.
 const PREFIX = execSync('git rev-parse --show-prefix', { cwd: ROOT }).toString().trim()
-const gitPaths = (filter) =>
-	execSync(`git diff --cached --name-only ${filter}`, { cwd: ROOT })
+const gitPaths = (filter, base = 'git diff --cached --name-only') =>
+	execSync(`${base} ${filter}`, { cwd: ROOT })
 		.toString()
 		.split('\n')
 		.filter(Boolean)
@@ -27,8 +27,17 @@ const gitPaths = (filter) =>
 		.map((p) => p.slice(PREFIX.length))
 		.filter(Boolean)
 
-const staged = gitPaths('--diff-filter=ADR')
-const stagedAll = gitPaths('')
+// WHICH FILES COUNT. As a pre-commit hook, staged-only is right: it grades the
+// commit being made. As part of `npm run check` — the command the README tells
+// you to verify with — staged-only is a hole you can drive a truck through: an
+// unstaged ADR body rewrite, and a price smuggled into an immutable file, both
+// returned OK. Default to staged PLUS working-tree changes; `--staged` restores
+// hook semantics.
+const STAGED_ONLY = process.argv.includes('--staged')
+const worktree = (filter) => (STAGED_ONLY ? [] : gitPaths(filter, 'git diff --name-only'))
+
+const staged = [...new Set([...gitPaths('--diff-filter=ADR'), ...worktree('--diff-filter=ADR')])]
+const stagedAll = [...new Set([...gitPaths(''), ...worktree('')])]
 
 const problems = []
 
@@ -74,9 +83,11 @@ for (const f of stagedAll.filter(
 // 2b. ADRs are immutable — supersede, never edit. A staged MODIFICATION to a
 // numbered ADR is flagged unless the diff is the supersession itself (adding
 // the "superseded by" status pointer).
-const modified = gitPaths('--diff-filter=M')
+const modified = [...new Set([...gitPaths('--diff-filter=M'), ...worktree('--diff-filter=M')])]
 for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f))) {
-	const diff = execSync(`git diff --cached -U0 -- "${f}"`, { cwd: ROOT }).toString()
+	const diff =
+		execSync(`git diff --cached -U0 -- "${f}"`, { cwd: ROOT }).toString() +
+		(STAGED_ONLY ? '' : execSync(`git diff -U0 -- "${f}"`, { cwd: ROOT }).toString())
 	// The status block is METADATA, not the decision — the README already treats
 	// it as mutable (the superseded-by pointer lives there), so the rule that
 	// froze the whole file was narrower than its own rationale. What is immutable

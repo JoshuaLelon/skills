@@ -46,7 +46,10 @@ const UNPROVABLE = {
 // control goes red for an unrelated reason. Build a throwaway repo instead,
 // seed it with the real ADRs and the real script, mutate there, and delete it.
 // `llms.txt` is touched so the co-change rule is always satisfied and only the
-// rule under test can speak.
+// rule under test can speak. The ADRs are seeded from HEAD, not the working
+// tree: seeding from the tree let an unrelated uncommitted edit poison the
+// probe, which is how a smuggled ADR body rewrite turned a negative control red
+// while telling you nothing about the rule it was supposed to be testing.
 // The next free ADR number, computed. Hardcoding one (0025) worked until an app
 // actually reached it: the planted probe then becomes a DUPLICATE and the
 // negative control goes red for a reason that has nothing to do with the rule.
@@ -60,12 +63,12 @@ const NEXT_ADR = String(
 	) + 1,
 ).padStart(4, '0')
 
-const docsProbe = (setup) => `
+const docsProbe = (setup, { stage = true } = {}) => `
 d=$(mktemp -d)
 mkdir -p "$d/docs/decisions" "$d/src"
 mkdir -p "$d/scripts"
 cp scripts/docs-check.mjs "$d/scripts/"
-cp docs/decisions/*.md "$d/docs/decisions/"
+git archive HEAD docs/decisions | tar -x -C "$d" 2>/dev/null || cp docs/decisions/*.md "$d/docs/decisions/"
 printf 'seed\\n' > "$d/llms.txt"
 cd "$d"
 git init -q .
@@ -73,7 +76,7 @@ git add -A
 git -c user.email=g@g -c user.name=g commit -qm seed
 ${setup}
 printf 'touched\\n' >> llms.txt
-git add -A
+${stage ? 'git add -A' : ':'}
 node scripts/docs-check.mjs
 rc=$?
 cd /
@@ -219,6 +222,15 @@ const MUTATIONS = [
 		// right — the mutation was broken, not the rule.
 		cmd: docsProbe(
 			`f=$(ls docs/decisions/0009-*.md | head -1); printf '\\nAn added paragraph in the argument.\\n' >> "$f"`,
+		),
+		expect: 'ADR bodies are immutable',
+	},
+	{
+		gate: 'docs-check: an UNSTAGED ADR body edit is refused (working-tree mode)',
+		files: {},
+		cmd: docsProbe(
+			`f=$(ls docs/decisions/0009-*.md | head -1); printf '\\nSmuggled past the index.\\n' >> "$f"`,
+			{ stage: false },
 		),
 		expect: 'ADR bodies are immutable',
 	},
