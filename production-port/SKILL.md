@@ -79,6 +79,10 @@ cd <app> && node scripts/rename-app.mjs <app>   # kills every template identity;
                                                # config-traps' sentinel check fails until run
 npm install && git init && npx lefthook install
 cp .dev.vars.example .dev.vars
+npm run docs:generate  # rename-app moved llms.txt/AGENTS.md; regenerate or docs:check is red
+git add -A && git commit -m "from the production-port template"
+                       # NOT optional: docs-check and the ADR-immutability gate read git, and
+                       # with zero commits three verify-gates controls cannot fire at all
 npm run db:up && npm run db:migrate
 npm run check          # GREEN BEFORE ANY PORT WORK — red here is template rot:
                        # fix it in the skill's copy, every future app inherits it

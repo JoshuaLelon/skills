@@ -43,7 +43,27 @@ if (STATUS) {
 		'e2e/flows/notes.spec.ts',
 	].filter((p) => existsSync(join(ROOT, p)))
 	if (!remaining.length && !exemplar.length) {
-		console.log('port:status — DONE: staging empty, exemplar deleted.')
+		// The two file checks above are necessary and NOWHERE NEAR sufficient:
+		// `rm -rf src/_port` plus deleting the exemplar satisfied both, and printed
+		// DONE for a tree whose routes.ts still pointed at screens that no longer
+		// existed. It could not distinguish MAPPED from DELETED — the one thing it
+		// exists to prevent. SKILL.md already calls the carried flow tests "the
+		// port's proof", so run them, plus the gate that would have caught the
+		// dangling route. Nothing else in the repo asserts the port actually landed.
+		console.log('port:status — staging empty, exemplar deleted. Proving it…\n')
+		for (const cmd of ['npm run gate', 'npm run e2e']) {
+			try {
+				execSync(cmd, { cwd: ROOT, stdio: 'inherit' })
+			} catch {
+				console.error(
+					`\nport:status — NOT DONE: \`${cmd}\` failed.\n` +
+						'  The files are gone; that is not the same as the features arriving.\n' +
+						"  A port is done when the prototype's locked flows pass HERE.",
+				)
+				process.exit(1)
+			}
+		}
+		console.log('\nport:status — DONE: staging empty, exemplar deleted, locked flows green.')
 		process.exit(0)
 	}
 	if (remaining.length) {

@@ -14,6 +14,10 @@ cp -R <skill-dir>/assets/cloudflare-neon-prod-spanning-template my-app
 cd my-app && node scripts/rename-app.mjs my-app   # config-traps fails until this runs
 npm install && git init && npx lefthook install
 cp .dev.vars.example .dev.vars
+npm run docs:generate                          # rename-app moved llms.txt/AGENTS.md; regenerate
+git add -A && git commit -m "from the production-port template"   # docs-check and the ADR
+                                               # immutability gate work off git; with zero
+                                               # commits three verify-gates controls cannot fire
 npm run db:up && npm run db:migrate && npm run check   # green before you touch anything
 node scripts/port-from-prototype.mjs --from ../my-prototype
 ```

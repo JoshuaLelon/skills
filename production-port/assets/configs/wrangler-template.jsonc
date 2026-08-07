@@ -1,7 +1,17 @@
 // Copied from the production-port skill — the comments ARE the config rules.
 {
   "name": "[FILL: worker name]",
-  "main": "./build/server/index.js",
+  // The SOURCE entry, not the build output. Under @cloudflare/vite-plugin the
+  // build generates its own flattened config at build/server/wrangler.json with
+  // `main` rewritten and `no_bundle` set; pointing this at ./build/server/index.js
+  // describes the artifact rather than the input, and diverges from the spanning
+  // template (workers/app.ts) that every ported app actually ships.
+  "main": "./workers/app.ts",
+  // `pg` (node-postgres) reaches Neon through Hyperdrive and needs Node's net/
+  // stream surface; most vendor SDKs (Anthropic included) need it too. Without
+  // this flag the Worker builds and then fails at runtime on the first query —
+  // the spanning template has carried it since day one.
+  "compatibility_flags": ["nodejs_compat"],
   // ADR-0009: platform-native observability is the whole logging backend.
   // Structured console objects from lib/log get every field indexed.
   // traces: automatic spans for binding calls, subrequests and handlers.
@@ -40,7 +50,18 @@
       "vars": {
         "ENVIRONMENT": "demo"
         // …and every other var from the top-level block, repeated.
-      }
+      },
+      // BINDINGS do not inherit either — the same trap as `vars`, one level up
+      // and worse: a missing var vanishes as a string, a missing binding
+      // vanishes as a CAPABILITY. Omit this block and env.demo flattens to
+      // `"hyperdrive": []`, so demo silently falls back to DATABASE_URL and
+      // stops exercising the data path production uses. Point it at the demo
+      // Neon branch — sharing production's id would make "demo" a second name
+      // for production's data. check-config-traps fails on any binding present
+      // at the top level and absent from an env block.
+      "hyperdrive": [
+        { "binding": "HYPERDRIVE", "id": "[FILL: hyperdrive create, demo branch]" }
+      ]
     }
   }
   // DEPLOY RULE (enforced by check-config-traps): environment is selected at
