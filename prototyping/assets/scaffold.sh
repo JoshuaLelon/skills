@@ -62,6 +62,12 @@ for (const f of ["tsconfig.app.json", "tsconfig.json"]) {
   break;
 }'
 grep -q '.react-router' .gitignore 2>/dev/null || echo ".react-router" >> .gitignore
+# Playwright output, RR build output, and the skill pin — the pin holds an
+# ABSOLUTE path, so it is machine-local by nature; sync-runtime falls back to
+# PROTOTYPING_SKILL= when it is missing.
+for ig in test-results playwright-report build .prototyping-skill; do
+  grep -qx "$ig" .gitignore 2>/dev/null || echo "$ig" >> .gitignore
+done
 
 cp "$ASSETS/gate.mjs" scripts/gate.mjs
 cp "$ASSETS/strip-harness.mjs" scripts/strip-harness.mjs
