@@ -14,9 +14,13 @@ if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
 const TEMPLATE = 'cloudflare-neon-prod-spanning-template'
 
 // package.json name
+// Tabs, because biome.json sets indentStyle: tab and formats package.json too.
+// Writing 2-space JSON here left `npm run lint` red in every brand-new app —
+// the README promises "green before you touch anything" and this was the first
+// command it tells you to run.
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
 pkg.name = name
-writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`)
+writeFileSync('package.json', `${JSON.stringify(pkg, null, '\t')}\n`)
 
 // wrangler: worker names + the template's OWN hyperdrive id must not survive —
 // deploying with them would overwrite the reference deployment.
