@@ -21,7 +21,11 @@
   // gain nothing — the round trip only moves. Set region to the Neon project's
   // region; Placement Hints (not mode:"smart") because this is one known,
   // single-homed database.
-  // "placement": { "region": "[FILL: Neon region, e.g. aws:us-east-1]" },
+  // Resolved from the Neon project's actual region (aws-us-east-1) rather than
+  // guessed. Still COMMENTED OUT: the region is now known, the BENEFIT is not —
+  // no deploy has measured it, and ADR-0019's rule is "measured, not assumed".
+  // Uncomment after a deploy that compares the two (AGENTS.md §7 tracks this).
+  // "placement": { "region": "aws:us-east-1" },
   // ADR-0001: Hyperdrive carries the DIRECT (non-pooler) Neon string —
   // Hyperdrive does the pooling. localConnectionString serves dev/tests
   // (db/client.server.ts falls back when the binding is absent locally).

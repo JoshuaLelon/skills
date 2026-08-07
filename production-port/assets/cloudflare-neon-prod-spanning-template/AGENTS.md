@@ -160,7 +160,8 @@ page. Correct them as they are verified; add the port's own beneath.
 | The integration tier runs the built Worker in workerd — `env.HYPERDRIVE` is live inside it and the app's logs come back through the runtime's structured stream | verified-by-execution | 2026-08-07 |
 | `check:schema-drift` catches added/dropped/renamed tables and columns; it compares the schema FILE to migration SNAPSHOTS and cannot see a database that was `push`ed out of line | verified-by-execution | 2026-08-07 |
 | Hand-written extension DDL (`CREATE EXTENSION`) is outside the drift comparison — the snapshot format has no key for it | verified-by-execution | 2026-08-07 |
-| `placement` is unset because this app's Neon region is unknown; ADR-0019's round-trip counts were read from the query paths, never measured against a live database | unverified | 2026-08-07 |
+| The Neon project `spanning-template` is in `aws-us-east-1`, so ADR-0019's placement Hint would be `aws:us-east-1` | verified-by-execution (Neon API) | 2026-08-07 |
+| `placement` stays commented out: the region is known, the BENEFIT is unmeasured — ADR-0019's round-trip counts were read from the query paths, never timed against a deployed Worker | unverified | 2026-08-07 |
 | `wrangler versions upload` / `rollback` (ADR-0020) have never been run against a real account from this template | unverified | 2026-08-07 |
 | Cloudflare's per-event observability prices and the trace cutover date, as recorded in `docs/reference/cloudflare-primitives.md` | verified-by-docs | 2026-08-07 |
 

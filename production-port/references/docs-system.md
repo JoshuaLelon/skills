@@ -72,3 +72,24 @@ written for the third time, that's the signal to build the report.
   current or the generated graph lies.
 - No prices or dated deadlines inside `decisions/`. They belong in `reference/`,
   which can be corrected when they move; an immutable file cannot be.
+
+## Testing the system on strangers
+
+`assets/lab.sh <dir> <name>...` builds N isolated copies of a REAL app — built
+the way the README says to build one (rename-app, git init, lefthook install),
+because two of the bugs this found lived in that path and were invisible from
+inside the template, which never runs rename-app on itself. It refuses to clone
+unless the baseline is green first, so a polluted result is impossible.
+
+Then give each copy to an agent with NO context: a realistic task, "stay inside
+this directory", and a demand for the two things that matter — how it discovered
+the conventions, and every time something blocked it, correct or not.
+
+Two rounds of five found: a brand-new app that was lint-red, e2e silently
+grading a different project on port 5173, three deleted mutations nobody
+noticed, `db-push-guard` pointed at the wrong port under a comment claiming
+otherwise, `docs-check` blind to untracked files, and a probe shipping a mutated
+doc into every scaffolded app. None of it came from reading the code again.
+
+The signal to watch is FALSE alarms, not catches. Both rounds returned zero,
+which is what says the gates are not merely loud.
