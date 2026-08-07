@@ -75,6 +75,22 @@ are otherwise byte-identical. A drizzle-kit upgrade that bumps the snapshot
 format is reported as format skew rather than as drift, since every field would
 differ at once and the schema would not have moved.
 
+**What it is NOT credited with**, because a gate credited with more than it
+catches is worse than none:
+
+- **It compares the schema FILE to the migration SNAPSHOTS, not to a database.**
+  The name invites the stronger reading. A database that was `push`ed or
+  hand-altered out of line with its own migrations is invisible here and this
+  gate stays green forever. Catching that needs a live connection, which neither
+  this nor `drizzle-kit check` attempts.
+- **Hand-written SQL in a migration is outside the compared state.** The snapshot
+  format has no key for extensions — its top-level keys are `tables`, `enums`,
+  `schemas`, `sequences`, `roles`, `policies`, `views` — and ADR-0002 puts
+  extension DDL in migration 0000 by hand. So `CREATE EXTENSION vector` is
+  neither in the snapshot nor detectable as missing from it. None exists today;
+  the hole opens the moment one does.
+- **A rename is not distinguished from a drop plus an add** (above).
+
 Supersede this if drizzle-kit grows a non-interactive rename resolution — a
 flag that makes the diff total without a human — at which point the added/removed
 pair could become a named rename and the scratch generate could go away.

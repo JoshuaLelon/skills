@@ -58,6 +58,14 @@ function* docs(dir) {
 	}
 }
 
+// Generated artifacts must never be TRACKED. A pin says "a human re-read this",
+// and nobody re-reads a file a script rewrites — the pin would go stale on every
+// regeneration and get blessed reflexively, which is how a freshness signal
+// becomes noise. It is also the one edge that would make the generator graph
+// cyclic: adr-graph writes adr-graph.md, a pin on it goes stale, blessing edits
+// an ADR, which is adr-graph's own input. Kept acyclic by refusing the edge.
+const GENERATED = ['docs/reference/adr-graph.md', 'llms.txt', 'AGENTS.md']
+
 const stale = []
 const missing = []
 let pins = 0
@@ -79,6 +87,12 @@ for (const f of [...docs('docs')].filter(
 		pins++
 		if (!existsSync(join(ROOT, target))) {
 			missing.push(`${f}: Tracks '${rel}' — no such file`)
+			continue
+		}
+		if (GENERATED.includes(target)) {
+			missing.push(
+				`${f}: Tracks '${rel}', which is GENERATED — a pin asserts a human re-read it, and a script rewrites this file. Track the source the generator reads instead.`,
+			)
 			continue
 		}
 		const now = blob(target)

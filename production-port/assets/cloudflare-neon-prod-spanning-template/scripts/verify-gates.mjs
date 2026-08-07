@@ -282,6 +282,16 @@ const MUTATIONS = [
 		expect: 'test:int does not build first',
 	},
 	{
+		gate: 'docs-tracks: a pin on a GENERATED file is refused',
+		files: {},
+		cmd: restoreProbe(
+			'docs/decisions/0016-observability-depth-logs-traces-and-the-price-ch.md',
+			's|../reference/cloudflare-primitives.md@|../reference/adr-graph.md@|',
+			'node scripts/docs-tracks.mjs',
+		),
+		expect: 'which is GENERATED',
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.

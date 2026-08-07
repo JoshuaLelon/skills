@@ -50,6 +50,17 @@ An ADR's **body is immutable; its status block is not.** The block is metadata �
 the supersession pointer always lived there — and edges must stay current or the
 generated graph lies. `docs-check` enforces exactly that split.
 
+**Generation has an order, and it is a DAG.** `adr-graph` WRITES into `docs/`
+and `docs-index` WALKS `docs/`, so the graph must be generated before the index
+— run `npm run docs:generate`, which sequences all three (stack → graph → index).
+Backwards leaves `llms.txt` stale; `docs:check` catches it loudly rather than
+letting it rot, but knowing the order beats discovering it from a red build.
+
+`docs:bless` writes back into `docs/decisions/`, which is the graph's own input.
+That is a cycle on paper and benign in fact, because no generator reads
+`Tracks:` — and `docs-tracks` now refuses a pin pointing at a generated file, so
+it stays benign by construction rather than by luck.
+
 Every invariant of this system, with its enforcement stated — a rule credited
 with more than it catches is worse than no rule:
 

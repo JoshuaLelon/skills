@@ -21,6 +21,7 @@
 		"docs:bless": "node scripts/docs-tracks.mjs --bless",
 		"docs:check": "node scripts/docs-check.mjs && node scripts/docs-index.mjs --check && node scripts/adr-graph.mjs --check && node scripts/docs-tracks.mjs --check",
 		"docs:fillins": "node scripts/docs-fillins.mjs",
+		"docs:generate": "node scripts/export-stack.mjs --stamp && node scripts/adr-graph.mjs && node scripts/docs-index.mjs",
 		"docs:index": "node scripts/docs-index.mjs",
 		"docs:tracks": "node scripts/docs-tracks.mjs",
 		"e2e": "playwright test",
