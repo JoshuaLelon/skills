@@ -270,7 +270,7 @@ const MUTATIONS = [
 		// assert the checker then agrees.
 		gate: 'docs-tracks: freshly blessed pins pass --check (negative control)',
 		files: {},
-		cmd: `d=$(mktemp -d); cp -R docs "$d/"; (cd "$d" && node ${ROOT}/scripts/docs-tracks.mjs --bless >/dev/null && node ${ROOT}/scripts/docs-tracks.mjs --check); rc=$?; rm -rf "$d"; exit $rc`,
+		cmd: `d=$(mktemp -d); cp -R docs "$d/"; (cd "$d" && node ${ROOT}/scripts/docs-tracks.mjs --bless docs/decisions >/dev/null && node ${ROOT}/scripts/docs-tracks.mjs --check); rc=$?; rm -rf "$d"; exit $rc`,
 		expectClean: true,
 	},
 	{

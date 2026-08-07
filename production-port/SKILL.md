@@ -131,7 +131,7 @@ refusing to finish until every gate has proven it can fail.
 | --- | --- | --- |
 | format + baseline lint | biome (stock preset) | best value-per-line measured; near-zero maintenance |
 | bug-class lint | oxlint | catches what biome doesn't (floating promises, redeclares) — config uses directory ignores, never per-file overrides (those rotted within 3 days) |
-| decision enforcement | ast-grep | encodes ADRs as patterns — **write a Tsx twin for any rule that must reach `.tsx`** (the grammars are exclusive), and **never match string literals with `pattern:`** (quote-style-exact; use `kind` + `regex` — verify-gates caught a single-quoted pattern missing every double-quoted import). Ships: domain purity, locator discipline, owner-from-params, React legacy (`forwardRef`/`useContext`), Remix imports |
+| decision enforcement | ast-grep | encodes ADRs as patterns — **write a Tsx twin for any rule that must reach `.tsx`** (the grammars are exclusive), and **never match string literals with `pattern:`** (quote-style-exact; use `kind` + `regex` — verify-gates caught a single-quoted pattern missing every double-quoted import). The app's own `AGENTS.md` §3 carries the generated index of every rule, from all three sources |
 | module boundaries | dependency-cruiser | the only real import-graph analysis; every rule mutation-tested |
 | dead code | knip | proved value day one elsewhere; expect noise until screens are wired |
 | orchestration | lefthook | staged-file scoping; the full hook list including the prototype gate and flow suite |

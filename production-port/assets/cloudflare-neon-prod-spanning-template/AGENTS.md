@@ -152,4 +152,16 @@ lie, "removed" APIs live, "moved" APIs hard-error — eight documented claims in
 the source material were contradicted by actually running the packages.
 Smoke-run before encoding any version claim as a rule.
 
-[FILL: start the ledger with the port's own claims]
+The template's own claims are seeded below so the first entry is never a blank
+page. Correct them as they are verified; add the port's own beneath.
+
+| claim | confidence | dated |
+| --- | --- | --- |
+| The integration tier runs the built Worker in workerd — `env.HYPERDRIVE` is live inside it and the app's logs come back through the runtime's structured stream | verified-by-execution | 2026-08-07 |
+| `check:schema-drift` catches added/dropped/renamed tables and columns; it compares the schema FILE to migration SNAPSHOTS and cannot see a database that was `push`ed out of line | verified-by-execution | 2026-08-07 |
+| Hand-written extension DDL (`CREATE EXTENSION`) is outside the drift comparison — the snapshot format has no key for it | verified-by-execution | 2026-08-07 |
+| `placement` is unset because this app's Neon region is unknown; ADR-0019's round-trip counts were read from the query paths, never measured against a live database | unverified | 2026-08-07 |
+| `wrangler versions upload` / `rollback` (ADR-0020) have never been run against a real account from this template | unverified | 2026-08-07 |
+| Cloudflare's per-event observability prices and the trace cutover date, as recorded in `docs/reference/cloudflare-primitives.md` | verified-by-docs | 2026-08-07 |
+
+[FILL: this port's own claims — anything you believe but have not run.]

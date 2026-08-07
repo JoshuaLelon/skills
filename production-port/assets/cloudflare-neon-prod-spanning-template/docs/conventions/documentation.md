@@ -34,6 +34,17 @@ and continue here — never restart them. Every file opens with a status block:
 `Kind / Status / Updated / Level / Built (design docs; falsifiable) / Scope
 (including what it does NOT cover) / Constrained by`.
 
+**Does a change need a doc?** Mostly no. A feature that follows the existing
+conventions needs none — its reasoning belongs in the code and the commit
+message, which is how the exemplar carries its own. Write a doc when the change
+does one of three things: **supersedes a decision** (a new ADR), **establishes a
+convention** others must follow (`conventions/`), or **states a fact that will
+be looked up and can move** (`reference/`). `design/` holds a screen or object
+model's intended behaviour, carried in from the prototype; `plans/` holds
+time-bounded work and is deleted when the work lands. Both are empty in a fresh
+template, which is correct, not an omission — nothing has been designed or
+planned yet.
+
 **`Constrained by:` is the edge the whole tree is drawn from**, and it runs the
 full depth: `intent.md` (L0) → `product-invariants.md` (L1) →
 `object-model.md` (L2) → the ADRs (L3–L4). It was the ADRs that lacked it, which

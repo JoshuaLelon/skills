@@ -33,6 +33,20 @@ const CHECK = process.argv.includes('--check')
 // `--bless` still blesses everything, which is honest only when you did.
 const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 
+// A bare `--bless` is refused. Blessing asserts "a human re-read THIS document",
+// and one unscoped command could assert that about four documents you never
+// opened — the only frictionless path to green in the system. Naming the doc is
+// the whole point: it makes the claim per-document and deliberate. It still
+// cannot prove you were right, only that you looked; that limit is honest and
+// stated, and it is not an argument for making the looking optional too.
+if (BLESS && !ONLY.length) {
+	console.error(
+		'docs-tracks: `--bless` needs the document(s) you re-read — e.g. `npm run docs:bless -- 0016`.\n' +
+			'  Blessing asserts a human re-read that document. Unscoped, it would assert it about every stale pin at once.',
+	)
+	process.exit(1)
+}
+
 const blob = (p) => {
 	try {
 		return execSync(`git hash-object "${p}"`, { cwd: ROOT, stdio: 'pipe' })
