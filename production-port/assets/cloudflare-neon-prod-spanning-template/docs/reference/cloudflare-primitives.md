@@ -1,5 +1,12 @@
 # Cloudflare primitives — what each one is for
 
+> **Kind:** reference · **Status:** accepted · **Updated:** 2026-08-07
+> **Level:** 4 — mechanism
+> **Constrained by:** `../decisions/0001-cloudflare-for-everything-that-runs-neon-for-eve.md`
+> **Scope:** what each primitive is, when to reach for it, when not to, and the
+> numbers that decide. The DECISIONS about how to choose live in the ADRs that
+> cite this file; this is the lookup table, and it moves when Cloudflare moves.
+
 The ADRs decide *how to choose* (ADR-0014 storage, ADR-0015 deferred work,
 ADR-0016 observability, ADR-0022 models, ADR-0023 edge). This file is the
 lookup table behind them: what each primitive is, the condition that should make

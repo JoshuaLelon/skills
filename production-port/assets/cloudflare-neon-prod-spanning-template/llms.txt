@@ -26,19 +26,20 @@
 - [0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md](docs/decisions/0011-ci-runs-the-cheap-half-honestly-deploys-are-scri.md) · **L4** · ⚠ **partially superseded** (release → ADR-0020): CI runs the cheap half, honestly; deploys are scripted and manual
 - [0012-seams-decided-in-advance.md](docs/decisions/0012-seams-decided-in-advance.md) · **L3**: Seams decided in advance
 - [0013-the-walking-skeleton.md](docs/decisions/0013-the-walking-skeleton.md) · **L3**: The walking skeleton: no pattern ships unexecuted
-- [0014-choosing-a-cloudflare-storage-primitive.md](docs/decisions/0014-choosing-a-cloudflare-storage-primitive.md) · **L3**: Choosing a storage primitive: Postgres is the floor, not the ceiling
-- [0015-choosing-how-deferred-work-runs.md](docs/decisions/0015-choosing-how-deferred-work-runs.md) · **L3**: Choosing how deferred work runs: the ladder is waitUntil → Queues → Workflows
-- [0016-observability-depth-logs-traces-and-the-price-ch.md](docs/decisions/0016-observability-depth-logs-traces-and-the-price-ch.md) · **L3**: Observability depth: logs answer "what happened", traces answer "what was slow"
+- [0014-choosing-a-cloudflare-storage-primitive.md](docs/decisions/0014-choosing-a-cloudflare-storage-primitive.md) · **L3**: Storage: Postgres is the floor, not the ceiling
+- [0015-choosing-how-deferred-work-runs.md](docs/decisions/0015-choosing-how-deferred-work-runs.md) · **L3**: Deferred work: climb the ladder only when the rung breaks
+- [0016-observability-depth-logs-traces-and-the-price-ch.md](docs/decisions/0016-observability-depth-logs-traces-and-the-price-ch.md) · **L3**: Observability depth: logs answer "what happened", traces "what was slow"
 - [0017-cold-start-is-budgeted-bundle-and-startup-cpu.md](docs/decisions/0017-cold-start-is-budgeted-bundle-and-startup-cpu.md) · **L4**: Cold start is budgeted: bundle size and startup CPU are gates, not trivia
 - [0018-generated-config-types-are-verified-not-trusted.md](docs/decisions/0018-generated-config-types-are-verified-not-trusted.md) · **L4**: Generated config types are verified, not trusted
 - [0019-worker-placement-is-measured-not-assumed.md](docs/decisions/0019-worker-placement-is-measured-not-assumed.md) · **L4**: Worker placement is measured, and this app's hot routes justify a Hint
 - [0020-release-mechanics-versions-preview-urls-rollback.md](docs/decisions/0020-release-mechanics-versions-preview-urls-rollback.md) · **L4**: Release mechanics: a deploy you can preview, split, and undo
 - [0021-runtime-parity-in-tests.md](docs/decisions/0021-runtime-parity-in-tests.md) · **L4**: Runtime parity: the integration tier runs in workerd, against the production build
-- [0022-choosing-a-model-access-path.md](docs/decisions/0022-choosing-a-model-access-path.md) · **L3**: Choosing a model-access path: the seam is decided, the route to the model is not
-- [0023-choosing-an-edge-request-primitive.md](docs/decisions/0023-choosing-an-edge-request-primitive.md) · **L3**: Choosing an edge-request primitive: what the platform does before your code runs
+- [0022-choosing-a-model-access-path.md](docs/decisions/0022-choosing-a-model-access-path.md) · **L3**: Model access: the seam is decided, the route to the model is not
+- [0023-choosing-an-edge-request-primitive.md](docs/decisions/0023-choosing-an-edge-request-primitive.md) · **L3**: The edge: settle a concern before your code pays for it
 - [README.md](docs/decisions/README.md): Decisions (ADRs)
 - [adr-template.md](docs/decisions/adr-template.md): ADR-[FILL: NNNN] — [FILL: decision, stated as the choice made]
 
 ## Reference — what is true
 
 - [adr-graph.md](docs/reference/adr-graph.md) · **L3**: the decision tree, derived from every ADR's status block. Do not edit — run `npm run docs:adr-graph`. Edges live in the ADRs.
+- [cloudflare-primitives.md](docs/reference/cloudflare-primitives.md) · **L4**: what each primitive is, when to reach for it, when not to, and the numbers that decide. The DECISIONS about how to choose live in the ADRs that cite this file; this is the lookup table, and it moves when Cloudflare moves.

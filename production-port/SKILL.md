@@ -189,9 +189,14 @@ and the per-screen accessor→loader swap (same signatures; ADR-0012).
   storage (0014), deferred work (0015), observability depth (0016), model
   access (0022), edge request handling (0023) — each answering "if you need X,
   reach for Y" rather than naming one blessed choice.
-  `references/cloudflare-primitives.md` is the lookup table behind them: what
-  each primitive is, the condition that should stop you, and the limits that
-  actually decide. Its numbers are dated — re-verify before committing.
+  The app's own `docs/reference/cloudflare-primitives.md` is the lookup table
+  behind them: what each primitive is, the condition that should stop you, and
+  the limits that actually decide. It lives in the template (and so in every
+  ported app) rather than in this skill, because the ADRs cite it and a citation
+  that resolves only from the skill directory is a dangling pointer in the app
+  that inherits it. Its numbers are dated — re-verify before committing, and
+  correct them there: a price belongs in `reference/`, which can be edited, not
+  in an ADR, which cannot (`docs-check` refuses one).
 - **Neon operations**: the `mcp__Neon__*` tools do branches
   (`create_branch`, `reset_from_parent`), connection strings, slow queries
   (`list_slow_queries`), and SQL directly — use them instead of hand-running

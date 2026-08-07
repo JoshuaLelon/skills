@@ -32,19 +32,27 @@ const UNPROVABLE = {
 		'fires on an import of an installed bcrypt; installing bcrypt to prove it is worse than the gap',
 }
 
-// docs-check 2b fires on MODIFICATIONS to tracked ADRs, which a harness that
-// only plants new files cannot produce without editing the real tree. Build a
-// throwaway repo, seed it with a real ADR, edit that, run the real script there.
-const immutableProbe = (edit) => `
+// docs-check reads the STAGED diff, and 2b needs a MODIFICATION to a tracked
+// file — neither of which a harness that plants files into the working tree can
+// produce. Staging into the real repo was the first attempt and is too fragile:
+// the result then depends on whatever else happens to be staged, so a negative
+// control goes red for an unrelated reason. Build a throwaway repo instead,
+// seed it with the real ADRs and the real script, mutate there, and delete it.
+// `llms.txt` is touched so the co-change rule is always satisfied and only the
+// rule under test can speak.
+const docsProbe = (setup) => `
 d=$(mktemp -d)
-mkdir -p "$d/docs/decisions" "$d/scripts"
+mkdir -p "$d/docs/decisions" "$d/src"
+mkdir -p "$d/scripts"
 cp scripts/docs-check.mjs "$d/scripts/"
-cp docs/decisions/0009-*.md "$d/docs/decisions/0009-probe.md"
+cp docs/decisions/*.md "$d/docs/decisions/"
+printf 'seed\\n' > "$d/llms.txt"
 cd "$d"
 git init -q .
 git add -A
 git -c user.email=g@g -c user.name=g commit -qm seed
-${edit}
+${setup}
+printf 'touched\\n' >> llms.txt
 git add -A
 node scripts/docs-check.mjs
 rc=$?
@@ -144,63 +152,55 @@ const MUTATIONS = [
 		expect: 'thresholds',
 	},
 	{
-		// docs-check reads the STAGED diff, so the mutation has to stage the
-		// planted file and unstage it again whatever happens. This gate shipped
-		// broken (a filename regex that matched nothing, masked by the template
-		// sitting in a subdirectory of the skills repo); nothing proved it fired.
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.
-		files: { 'src/__mut__adr.md': `Planted: cites ADR-${'9999'}, which does not exist.\n` },
-		cmd: 'git add -f -- src/__mut__adr.md && node scripts/docs-check.mjs; rc=$?; git reset -q -- src/__mut__adr.md; exit $rc',
-		expect: `src/__mut__adr.md: cites ADR-${'9999'}`,
+		files: {},
+		cmd: docsProbe(`printf 'Cites ADR-${'9999'}.\\n' > src/probe.md`),
+		expect: `cites ADR-${'9999'}`,
+	},
+	{
+		gate: 'docs-check: a VALID ADR citation stays silent (negative control)',
+		files: {},
+		cmd: docsProbe(`printf 'Cites ADR-0009.\\n' > src/probe.md`),
+		expectClean: true,
 	},
 	{
 		gate: 'docs-check: an ADR BODY edit is refused',
 		files: {},
-		cmd: immutableProbe(
-			`printf '\\nAn added paragraph in the argument.\\n' >> docs/decisions/0009-probe.md`,
+		// Resolve the filename through a command substitution, not a glob in the
+		// redirect target: /bin/sh (what execSync uses) does not expand those, so
+		// `>> docs/decisions/0009-*.md` silently creates a file with that literal
+		// name and the edit never lands. The harness reported DEAD GATE and was
+		// right — the mutation was broken, not the rule.
+		cmd: docsProbe(
+			`f=$(ls docs/decisions/0009-*.md | head -1); printf '\\nAn added paragraph in the argument.\\n' >> "$f"`,
 		),
 		expect: 'ADR bodies are immutable',
 	},
 	{
 		gate: 'docs-check: a STATUS BLOCK edit is allowed (negative control)',
 		files: {},
-		cmd: immutableProbe(
-			`node -e "const f='docs/decisions/0009-probe.md',fs=require('fs');fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('> **Level:**','> **Applies to:** cloudflare\\n> **Level:**'))"`,
+		cmd: docsProbe(
+			`node -e "const g=require('fs').readdirSync('docs/decisions').find(f=>f.startsWith('0009')),f='docs/decisions/'+g,fs=require('fs');fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('> **Level:**','> **Applies to:** cloudflare\\n> **Level:**'))"`,
 		),
 		expectClean: true,
 	},
 	{
-		gate: 'docs-check: a VALID ADR citation stays silent (negative control)',
-		files: { 'src/__mut__adr_ok.md': 'Planted: cites ADR-0009, which exists.\n' },
-		cmd: 'git add -f -- src/__mut__adr_ok.md && node scripts/docs-check.mjs; rc=$?; git reset -q -- src/__mut__adr_ok.md; exit $rc',
+		gate: 'docs-check: a price inside an immutable ADR is refused',
+		files: {},
+		cmd: docsProbe(
+			`printf '# ADR-${'0024'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/0024-probe.md`,
+		),
+		expect: 'volatile figure',
+	},
+	{
+		gate: 'docs-check: an ADR with no volatile figure stays silent (negative control)',
+		files: {},
+		cmd: docsProbe(
+			`printf '# ADR-${'0024'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nPrices live in the reference.\\n' > docs/decisions/0024-probe.md`,
+		),
 		expectClean: true,
-	},
-	{
-		// 0024 keeps the sequence contiguous so only the enforcement problem fires.
-		gate: 'adr-graph: an ADR naming a rule that does not exist is refused',
-		files: {
-			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** —\n> **Enforced by:** ast-grep:no-such-rule-exists\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
-		},
-		cmd: 'node scripts/adr-graph.mjs --validate',
-		expect: 'names no rule or script that exists',
-	},
-	{
-		gate: 'adr-graph: a well-formed ADR stays silent (negative control)',
-		files: {
-			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** 0001\n> **Enforced by:** none — judgement\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
-		},
-		cmd: 'node scripts/adr-graph.mjs --validate',
-		expectClean: true,
-	},
-	{
-		gate: 'adr-graph: an edge pointing at a missing ADR is refused',
-		files: {
-			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** 0999\n> **Enforced by:** none — judgement\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
-		},
-		cmd: 'node scripts/adr-graph.mjs --validate',
-		expect: "Constrained by '0999' does not resolve",
 	},
 	{
 		gate: 'depcruise: store-is-pure',

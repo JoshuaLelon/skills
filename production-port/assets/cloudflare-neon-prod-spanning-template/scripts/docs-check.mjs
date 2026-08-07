@@ -123,6 +123,30 @@ for (const f of stagedAll.filter(
 		problems.push(`${f}: no **Level:** line (0–5, the stability tree)`)
 }
 
+// 4. No volatile figures inside an IMMUTABLE file. A price or a dated deadline
+// in docs/decisions/ is a lie with a timer on it: the file cannot be edited when
+// the number moves, so the doctrine goes on asserting it. ADR-0016 carried two
+// per-million prices and a cutover date until they moved to reference/, which is
+// a living statement of fact and the right home. The status block is exempt —
+// `Updated:` is a date by definition.
+for (const f of stagedAll.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f))) {
+	let text = ''
+	try {
+		text = readFileSync(join(ROOT, f), 'utf8')
+	} catch {
+		continue
+	}
+	const body = text
+		.split('\n')
+		.filter((l) => !l.startsWith('>'))
+		.join('\n')
+	const hit = body.match(/\$\d[\d.,]*|\b20\d{2}-\d{2}-\d{2}\b/)
+	if (hit)
+		problems.push(
+			`${f}: volatile figure '${hit[0]}' in an immutable file — prices and dated deadlines belong in docs/reference/, which can be corrected when they move`,
+		)
+}
+
 if (problems.length) {
 	console.error(`docs-check:\n  ${[...new Set(problems)].join('\n  ')}`)
 	process.exit(1)

@@ -29,16 +29,16 @@ cannot go stale; removing the opportunity beats detecting the failure.
     - **ADR-0008** (L3) — Errors: two-tier RR8 boundaries, a typed taxonomy, platform capture
     - **ADR-0012** (L3) — Seams decided in advance
       - **ADR-0017** (L4) — Cold start is budgeted: bundle size and startup CPU are gates, not trivia
-      - **ADR-0022** (L3) — Choosing a model-access path: the seam is decided, the route to the model is not
+      - **ADR-0022** (L3) — Model access: the seam is decided, the route to the model is not
   - **ADR-0009** (L4) — Logging: one door, one flat JSON object, platform-indexed
-    - **ADR-0016** (L3) — Observability depth: logs answer "what happened", traces answer "what was slow"
+    - **ADR-0016** (L3) — Observability depth: logs answer "what happened", traces "what was slow"
   - **ADR-0011** (L4) — CI runs the cheap half, honestly; deploys are scripted and manual
     - **ADR-0020** (L4) — Release mechanics: a deploy you can preview, split, and undo
-  - **ADR-0014** (L3) — Choosing a storage primitive: Postgres is the floor, not the ceiling
-  - **ADR-0015** (L3) — Choosing how deferred work runs: the ladder is waitUntil → Queues → Workflows
+  - **ADR-0014** (L3) — Storage: Postgres is the floor, not the ceiling
+  - **ADR-0015** (L3) — Deferred work: climb the ladder only when the rung breaks
   - **ADR-0018** (L4) — Generated config types are verified, not trusted
   - **ADR-0019** (L4) — Worker placement is measured, and this app's hot routes justify a Hint
-  - **ADR-0023** (L3) — Choosing an edge-request primitive: what the platform does before your code runs
+  - **ADR-0023** (L3) — The edge: settle a concern before your code pays for it
 
 - **ADR-0005** (L3) — Time is an argument; test time comes from data first
 
