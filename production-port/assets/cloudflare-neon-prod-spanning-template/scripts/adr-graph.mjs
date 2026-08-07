@@ -244,7 +244,14 @@ for (const a of adrs.filter((x) => !x.constrainedBy.length)) {
 	lines.push(...out, '')
 }
 
-lines.push('## Prune sets — diverge from an axis, delete its column', '')
+lines.push('## Prune sets — diverge from an axis, supersede its column', '')
+lines.push(
+	'Leaving an axis does not mean DELETING these files — numbers are never',
+	'reused and adr-graph fails on a gap, so a deleted ADR is itself an error.',
+	'It means superseding each one on the topic that carried the axis; the',
+	'column then empties as the new ADRs take their place.',
+	'',
+)
 lines.push('| axis | ADRs that die with it |', '| --- | --- |')
 for (const ax of axes) {
 	const hit = adrs.filter((a) => a.axes.has(ax)).map((a) => a.n)

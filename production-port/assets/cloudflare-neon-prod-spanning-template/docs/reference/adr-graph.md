@@ -51,7 +51,12 @@ cannot go stale; removing the opportunity beats detecting the failure.
 
 - **ADR-0013** (L3) — The walking skeleton: no pattern ships unexecuted
 
-## Prune sets — diverge from an axis, delete its column
+## Prune sets — diverge from an axis, supersede its column
+
+Leaving an axis does not mean DELETING these files — numbers are never
+reused and adr-graph fails on a gap, so a deleted ADR is itself an error.
+It means superseding each one on the topic that carried the axis; the
+column then empties as the new ADRs take their place.
 
 | axis | ADRs that die with it |
 | --- | --- |

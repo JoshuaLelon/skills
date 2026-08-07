@@ -305,6 +305,15 @@ const MUTATIONS = [
 		expect: 'would never run',
 	},
 	{
+		gate: 'docs-check: an UNTRACKED new ADR is examined',
+		files: {},
+		cmd: docsProbe(
+			`printf '# ADR-${NEXT_ADR}\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $9.99/M.\\n' > docs/decisions/${NEXT_ADR}-probe.md`,
+			{ stage: false },
+		),
+		expect: 'volatile figure',
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.

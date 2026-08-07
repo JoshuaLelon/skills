@@ -36,8 +36,18 @@ const gitPaths = (filter, base = 'git diff --cached --name-only') =>
 const STAGED_ONLY = process.argv.includes('--staged')
 const worktree = (filter) => (STAGED_ONLY ? [] : gitPaths(filter, 'git diff --name-only'))
 
-const staged = [...new Set([...gitPaths('--diff-filter=ADR'), ...worktree('--diff-filter=ADR')])]
-const stagedAll = [...new Set([...gitPaths(''), ...worktree('')])]
+// UNTRACKED files count too. `git diff` lists neither them nor `--cached` does,
+// so a commit that only ADDS documents — the shape of every new ADR — was graded
+// against nothing: a brand-new ADR carrying a price passed clean. The honest
+// "nothing was validated" line is what surfaced this, but a check that cannot
+// see a new file is not a check on the work being done.
+const untracked = () =>
+	STAGED_ONLY ? [] : gitPaths('', 'git ls-files --others --exclude-standard --')
+
+const staged = [
+	...new Set([...gitPaths('--diff-filter=ADR'), ...worktree('--diff-filter=ADR'), ...untracked()]),
+]
+const stagedAll = [...new Set([...gitPaths(''), ...worktree(''), ...untracked()])]
 
 const problems = []
 

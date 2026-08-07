@@ -42,7 +42,9 @@ is how `decisions/` became a detached subtree whose dependencies lived only in
 three more machine-readable fields for the same reason: `Enforced by:` (checked
 in both directions — a named rule must exist, and a rule no ADR claims is
 flagged), `Applies to:` (which stack axes it dies with, so divergence prunes by
-computation instead of judgement), and `Supersedes:` (`NNNN#topic` for a partial
+computation instead of judgement — **inherited from `Constrained by:` and only
+ever NARROWED; an ADR cannot outlive what constrains it, and introducing a new
+axis therefore requires a root ADR**), and `Supersedes:` (`NNNN#topic` for a partial
 supersession — the older ADR is never edited; `docs:adr-graph` renders the
 correction against it).
 
