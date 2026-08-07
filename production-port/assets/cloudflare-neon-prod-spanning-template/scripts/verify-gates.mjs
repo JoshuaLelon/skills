@@ -34,6 +34,10 @@ const UNPROVABLE_SCRIPTS = {
 		'builds the whole app to measure it — minutes per run, and the budget it enforces is a number, not a rule with a violation to plant',
 }
 
+// Keyed by rule id for ast-grep and dependency-cruiser, and by `gate:<id>` for
+// a prototype-gate rule. It is empty of gate rules on purpose: all sixteen are
+// provable by planting a file, and a pile of admissions here is how a rule gets
+// dodged rather than proved.
 const UNPROVABLE = {
 	'no-bcrypt':
 		'fires on an import of an installed bcrypt; installing bcrypt to prove it is worse than the gap',
@@ -114,6 +118,17 @@ const wranglerProbe = (sedExpr) => restoreProbe('wrangler.jsonc', sedExpr)
 
 const schemaProbe = (sedExpr) =>
 	restoreProbe('src/db/schema.ts', sedExpr, 'node scripts/check-schema-drift.mjs', '"')
+
+// `strict-mode` is a FILE rule whose violation is an ABSENCE, so the probe has
+// to BE an entry file — and the rule accepts exactly two names. Which one is
+// free depends on the app: a Vite prototype has src/main.tsx, an RR8 app that
+// ejects its client entry has src/entry.client.tsx, and one that has not (this
+// template) has neither. Planting over the real entry would DELETE it in the
+// cleanup step, so plant the name this app does not use. If somehow both exist
+// the fallback collides deliberately: the collision guard below then says so
+// out loud, which beats destroying the app's client entry silently.
+const ENTRY_NAMES = ['src/entry.client.tsx', 'src/main.tsx']
+const ENTRY_PROBE = ENTRY_NAMES.find((p) => !existsSync(join(ROOT, p))) ?? ENTRY_NAMES[0]
 
 const MUTATIONS = [
 	{
@@ -526,20 +541,123 @@ const MUTATIONS = [
 		cmd: 'npx oxlint src/__mut__.ts',
 		expect: 'no-explicit-any',
 	},
-	{
-		gate: 'prototype gate: strict-mode (fires on an entry file lacking StrictMode)',
-		files: { 'src/entry.client.tsx': 'export function boot() {}\n' },
+	// -- the prototype gate ---------------------------------------------------
+	// All 16 rules, one shape each. Two of them had a mutation; the other
+	// fourteen shipped for months as rules that FAIL A BUILD and had never been
+	// shown to fail — this file's own meta-rule, broken inside the file that
+	// enforces it. The pre-pass below now makes that state impossible.
+	//
+	// These plant into the REAL tree rather than a scratch copy on purpose: each
+	// rule carries a `where` path regex, so a planted file proves the glob still
+	// points at this app's directory layout. A hermetic probe would keep passing
+	// after src/screens moved to app/routes, which is the failure the gate's own
+	// zero-file guard (below) exists to catch.
+	...[
+		[
+			'utility-in-screen',
+			{
+				'src/screens/__mut_utility__.tsx':
+					'export const M = () => <div className="text-sm">x</div>\n',
+			},
+		],
+		['export-let', { 'src/__mut_export_let__.ts': 'export let cursor = 0\n' }],
+		['impure-store', { 'src/store/__mut_impure__.ts': 'export const at = Date.now()\n' }],
+		[
+			'store-imports-view',
+			{
+				'src/store/__mut_view__.ts':
+					"import { useState } from 'react'\nexport const m = useState\n",
+			},
+		],
+		[
+			'fixture-holds-view',
+			{ 'src/fixtures/entities/__mut_markup__.ts': "export const blurb = '<p>markup</p>'\n" },
+		],
+		[
+			'seam-leak',
+			{
+				'src/screens/__mut_seam__.tsx':
+					"import { notes } from '../fixtures/entities/notes'\nexport const M = () => notes.length\n",
+			},
+		],
+		[
+			'raw-registry-import',
+			{
+				'src/screens/__mut_registry__.tsx':
+					"import { Button } from '../components/ui/button'\nexport const M = () => Button\n",
+			},
+		],
+		[
+			'bad-locator',
+			{ 'e2e/__mut_locator__.spec.ts': "export const save = (p: any) => p.getByTestId('save')\n" },
+		],
+		[
+			'bad-test-name',
+			{
+				'e2e/__mut_name__.spec.ts':
+					"declare const test: (n: string, f: () => void) => void\ntest('should save the note', () => {})\n",
+			},
+		],
+		[
+			'snapshot-in-file',
+			{
+				'e2e/__mut_snapshot__.spec.ts':
+					"export const c = (e: any) => e.toMatchAriaSnapshot({ name: 'notes.aria.yml' })\n",
+			},
+		],
+		[
+			'bad-id-format',
+			{ 'src/fixtures/entities/__mut_id__.ts': "export const note = { id: 'Note-1' }\n" },
+		],
+		['accent-leak', { 'src/__mut_accent__.css': '.probe { color: #e6007a; }\n' }],
+		[
+			'bad-action-name',
+			{
+				'src/store/__mut_action__.ts':
+					"export const r = (t: string) => {\n\tswitch (t) {\n\t\tcase 'save':\n\t\t\treturn 1\n\t}\n}\n",
+			},
+		],
+		// FILE rules: the violation is the ABSENCE of something, so the planted
+		// file has to land where the rule's `where` looks — a component directly
+		// under src/components/, and an entry file at one of the two names the
+		// rule accepts. Nothing in a line can express either.
+		['missing-states', { 'src/components/__mut_states__.tsx': 'export const M = () => null\n' }],
+		['strict-mode', { [ENTRY_PROBE]: 'export function boot() {}\n' }],
+		[
+			'inline-style',
+			{
+				'src/screens/__mut_style__.tsx':
+					'export function M() {\n  return <div style={{ color: "red" }}>x</div>\n}\n',
+			},
+		],
+	].map(([id, files]) => ({
+		gate: `prototype gate: ${id}`,
+		files,
 		cmd: 'node scripts/gate.mjs',
-		expect: 'strict-mode',
+		expect: id,
+	})),
+	{
+		// The guard that makes every rule above meaningful: a gate whose globs
+		// have been left behind by a moved tree matches nothing and reports OK.
+		// Hermetic by necessity — proving it needs a tree with no src/ or e2e/,
+		// which cannot be produced by planting files into this one.
+		gate: 'prototype gate: a tree it can no longer see is a failure, not a pass',
+		files: {},
+		cmd: 'd=$(mktemp -d); mkdir -p "$d/scripts"; cp scripts/gate.mjs "$d/scripts/"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc',
+		expect: 'scanned 0 files',
 	},
 	{
-		gate: 'prototype gate: still wired',
-		files: {
-			'src/screens/__mut__.tsx':
-				'export function M() {\n  return <div style={{ color: "red" }}>x</div>\n}\n',
-		},
-		cmd: 'node scripts/gate.mjs',
-		expect: 'inline-style',
+		// The one negative control the gate genuinely needs: `gate:allow <id>` is
+		// the single escape hatch for all 16 rules, so if it stopped being honored
+		// every rule would fail CLOSED at once and no positive mutation above
+		// would notice. Hermetic, because asserting exit 0 against the live tree
+		// would go red for whatever violation someone is mid-way through fixing.
+		// The identical file WITHOUT the comment fails — verified, so this is the
+		// hatch passing, not an empty probe.
+		gate: 'prototype gate: `gate:allow` is honored (negative control)',
+		files: {},
+		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src/screens" "$d/e2e"; cp scripts/gate.mjs "$d/scripts/"; printf '// gate:allow inline-style\\nexport const M = () => <div style={{ color: "red" }}>x</div>\\n' > "$d/src/screens/probe.tsx"; printf 'export const helper = 1\\n' > "$d/e2e/probe.ts"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
+		expectClean: true,
 	},
 ]
 
@@ -563,6 +681,48 @@ let failed = 0
 		for (const r of cfg.forbidden ?? []) if (r.severity === 'error') declared.add(r.name)
 	}
 	const covered = new Set(MUTATIONS.filter((m) => m.expect).map((m) => norm(m.expect)))
+
+	// The PROTOTYPE GATE's rules — the third kind of rule, and the one this
+	// pre-pass could not see. Fourteen of its sixteen rules had no mutation and
+	// nothing said so, because the pre-pass enumerated ast-grep and depcruise
+	// only. Every rule here fails a build, so every rule here owes a proof.
+	//
+	// gate.mjs is READ, not imported: importing it RUNS the gate (it walks the
+	// tree and may exit), which would end this harness mid-pre-pass. Same regex
+	// as adr-graph.mjs uses on the same file, for the same reason.
+	//
+	// Coverage is matched by what a mutation INVOKES, not by its `expect` alone:
+	// an id that happens to appear in some other tool's output must not launder
+	// a gate rule into looking proven.
+	const gateIds = []
+	{
+		const p = join(ROOT, 'scripts/gate.mjs')
+		if (existsSync(p))
+			for (const m of readFileSync(p, 'utf8').matchAll(/\bid:\s*(['"])(.+?)\1/g)) gateIds.push(m[2])
+		// Reading zero ids from a gate that exists is the silent-failure mode: the
+		// requirement would evaporate the moment someone reformats a rule object,
+		// and the fourteen missing mutations would become invisible again.
+		if (existsSync(p) && !gateIds.length) {
+			console.error(
+				"✗ UNREADABLE GATE  scripts/gate.mjs: parsed 0 rule ids, so no gate rule can be required to have a mutation. Keep each rule's `id:` a quoted single-line field.",
+			)
+			failed++
+		}
+	}
+	const gateCovered = new Set(
+		MUTATIONS.filter((m) => m.expect && /scripts\/gate\.mjs/.test(m.cmd)).map((m) => m.expect),
+	)
+	for (const id of gateIds) {
+		if (gateCovered.has(id)) continue
+		if (UNPROVABLE[`gate:${id}`]) {
+			console.log(`~  gate:${id}: no mutation, declared unprovable — ${UNPROVABLE[`gate:${id}`]}`)
+			continue
+		}
+		console.error(
+			`✗ UNCOVERED RULE  gate:${id}: no mutation proves it fires — plant a file scripts/gate.mjs must reject and expect '${id}', in the same commit as the rule.`,
+		)
+		failed++
+	}
 
 	// SCRIPT gates too. The pre-pass used to enumerate only ast-grep and
 	// depcruise rules, so a script gate could lose its mutation and nothing
@@ -611,6 +771,20 @@ let failed = 0
 }
 
 for (const m of MUTATIONS) {
+	// Planting NEVER writes over a file that is already there. The removal step
+	// below deletes every path it planted, so a collision would silently destroy
+	// the app's own file — and the FILE-rule mutations are exactly where that
+	// bites: `strict-mode` plants src/entry.client.tsx, which is a real file in
+	// any app that ejects the RR8 client entry. Modifying an existing file is
+	// what restoreProbe (copy, mutate, copy back) is for.
+	const collision = Object.keys(m.files).find((p) => existsSync(join(ROOT, p)))
+	if (collision) {
+		console.error(
+			`✗ UNSAFE MUTATION  ${m.gate}: would plant over the existing ${collision} and then delete it. Rename the planted file, or mutate it through restoreProbe.`,
+		)
+		failed++
+		continue
+	}
 	for (const [p, content] of Object.entries(m.files)) {
 		mkdirSync(join(ROOT, dirname(p)), { recursive: true })
 		writeFileSync(join(ROOT, p), content)
