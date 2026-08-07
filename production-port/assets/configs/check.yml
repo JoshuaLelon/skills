@@ -1,0 +1,32 @@
+# The cheap half of `npm run check`, honestly scoped: no DB, no e2e — and it
+# says so rather than pretending coverage. Deploys stay scripted and manual.
+name: check
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # bump alongside package.json engines when set
+          cache: npm
+      - run: npm ci
+      # ONE step, not one per check — deliberately. A step-per-check chain stops
+      # at the first failure, so a red CI run reports one problem per push and
+      # you learn about the next one on the next round trip. check:ci runs them
+      # all and prints a summary block FIRST naming every failure, so `head` on
+      # a long CI log shows the complete list rather than a prefix of it.
+      # The summary also states which checks were skipped (test:int, e2e — they
+      # need Postgres and browsers), so green here never reads as green
+      # everywhere. Add a service container and drop them from CI_SKIP when
+      # that coverage earns its keep.
+      #
+      # Covers: docs, config traps, types drift (ADR-0018), lint, architecture,
+      # dead code, gate, unit tests, verify:gates, and the cold-start budget
+      # (ADR-0017 — wiring one screen to a new dependency cost +95 KiB gzip).
+      - run: npm run check:ci
