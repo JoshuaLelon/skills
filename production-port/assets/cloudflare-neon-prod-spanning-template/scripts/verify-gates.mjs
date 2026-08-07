@@ -27,6 +27,13 @@ const ROOT = process.cwd()
 
 // Rules that CANNOT have a mutation, each with the reason stated — an entry
 // here is a public admission, not a quiet skip.
+// Script gates that cannot be mutation-tested, each with the reason stated.
+const UNPROVABLE_SCRIPTS = {
+	'verify:gates': 'this harness; a mutation of it would be self-referential',
+	'check:startup':
+		'builds the whole app to measure it — minutes per run, and the budget it enforces is a number, not a rule with a violation to plant',
+}
+
 const UNPROVABLE = {
 	'no-bcrypt':
 		'fires on an import of an installed bcrypt; installing bcrypt to prove it is worse than the gap',
@@ -40,6 +47,19 @@ const UNPROVABLE = {
 // seed it with the real ADRs and the real script, mutate there, and delete it.
 // `llms.txt` is touched so the co-change rule is always satisfied and only the
 // rule under test can speak.
+// The next free ADR number, computed. Hardcoding one (0025) worked until an app
+// actually reached it: the planted probe then becomes a DUPLICATE and the
+// negative control goes red for a reason that has nothing to do with the rule.
+// Two lab apps independently authored 0025 as their next decision.
+const NEXT_ADR = String(
+	Math.max(
+		0,
+		...readdirSync(join(ROOT, 'docs/decisions'))
+			.map((f) => Number(f.match(/^(\d{4})-/)?.[1]))
+			.filter((n) => !Number.isNaN(n)),
+	) + 1,
+).padStart(4, '0')
+
 const docsProbe = (setup) => `
 d=$(mktemp -d)
 mkdir -p "$d/docs/decisions" "$d/src"
@@ -162,6 +182,20 @@ const MUTATIONS = [
 		expect: 'reuseExistingServer must be literal false',
 	},
 	{
+		gate: 'db-push-guard: refuses a non-local host',
+		files: {},
+		cmd: 'DATABASE_URL=postgres://u:p@ep-cool-name.us-east-2.aws.neon.tech/app node scripts/db-push-guard.mjs',
+		expect: 'refusing to push to non-local host',
+	},
+	{
+		gate: 'db-push-guard: a LOCAL host is not refused (negative control)',
+		// It execs drizzle-kit on success, which needs a live database, so assert
+		// only that the guard itself does not object — the refusal path is the rule.
+		files: {},
+		cmd: 'DATABASE_URL=postgres://postgres:local@127.0.0.1:55433/app node scripts/db-push-guard.mjs 2>&1 | grep -q "refusing to push" && exit 1; exit 0',
+		expectClean: true,
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.
@@ -200,7 +234,7 @@ const MUTATIONS = [
 		gate: 'docs-check: a price inside an immutable ADR is refused',
 		files: {},
 		cmd: docsProbe(
-			`printf '# ADR-${'0025'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/0025-probe.md`,
+			`printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nSpans bill at $0.60/M after the cutover.\\n' > docs/decisions/${NEXT_ADR}-probe.md`,
 		),
 		expect: 'volatile figure',
 	},
@@ -208,8 +242,26 @@ const MUTATIONS = [
 		gate: 'docs-check: an ADR with no volatile figure stays silent (negative control)',
 		files: {},
 		cmd: docsProbe(
-			`printf '# ADR-${'0025'} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nPrices live in the reference.\\n' > docs/decisions/0025-probe.md`,
+			`printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Scope:** planted.\\n\\nPrices live in the reference.\\n' > docs/decisions/${NEXT_ADR}-probe.md`,
 		),
+		expectClean: true,
+	},
+	{
+		gate: 'adr-graph: an ADR naming a rule that does not exist is refused',
+		files: {},
+		cmd: `printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Constrained by:** 0001\\n> **Enforced by:** ast-grep:no-such-rule-exists\\n> **Scope:** planted.\\n' > docs/decisions/${NEXT_ADR}-probe.md; node scripts/adr-graph.mjs --validate; rc=$?; rm -f docs/decisions/${NEXT_ADR}-probe.md; exit $rc`,
+		expect: 'names no rule or script that exists',
+	},
+	{
+		gate: 'adr-graph: an edge pointing at a missing ADR is refused',
+		files: {},
+		cmd: `printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Constrained by:** 0999\\n> **Enforced by:** none — judgement\\n> **Scope:** planted.\\n' > docs/decisions/${NEXT_ADR}-probe.md; node scripts/adr-graph.mjs --validate; rc=$?; rm -f docs/decisions/${NEXT_ADR}-probe.md; exit $rc`,
+		expect: "Constrained by '0999' does not resolve",
+	},
+	{
+		gate: 'adr-graph: a well-formed ADR stays silent (negative control)',
+		files: {},
+		cmd: `printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Constrained by:** 0001\\n> **Enforced by:** none — judgement\\n> **Scope:** planted.\\n' > docs/decisions/${NEXT_ADR}-probe.md; node scripts/adr-graph.mjs --validate; rc=$?; rm -f docs/decisions/${NEXT_ADR}-probe.md; exit $rc`,
 		expectClean: true,
 	},
 	{
@@ -307,6 +359,40 @@ let failed = 0
 		for (const r of cfg.forbidden ?? []) if (r.severity === 'error') declared.add(r.name)
 	}
 	const covered = new Set(MUTATIONS.filter((m) => m.expect).map((m) => norm(m.expect)))
+
+	// SCRIPT gates too. The pre-pass used to enumerate only ast-grep and
+	// depcruise rules, so a script gate could lose its mutation and nothing
+	// noticed — which is exactly what happened: a careless block-replace deleted
+	// all three adr-graph mutations, the total dropped 27→26, and the run stayed
+	// green. The authority for "which script gates exist" is the ADRs' own
+	// `Enforced by: script:<name>` edges, so this cannot drift from the doctrine.
+	const scriptCmd = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}
+	const claimed = new Set()
+	if (existsSync(join(ROOT, 'docs/decisions'))) {
+		for (const f of readdirSync(join(ROOT, 'docs/decisions'))) {
+			if (!/^\d{4}-.+\.md$/.test(f)) continue
+			const line = readFileSync(join(ROOT, 'docs/decisions', f), 'utf8').match(
+				/\*\*Enforced by:\*\*\s*([^\n]+)/,
+			)?.[1]
+			for (const m of (line ?? '').matchAll(/script:([\w:-]+)/g)) claimed.add(m[1])
+		}
+	}
+	const allCmds = MUTATIONS.map((m) => m.cmd).join(' ')
+	for (const id of [...claimed].sort()) {
+		// Resolve to the file the gate actually runs, so a mutation is matched by
+		// what it invokes rather than by a name someone remembered to repeat.
+		const file = (scriptCmd[id] ?? `scripts/${id}.mjs`).match(/scripts\/([\w-]+\.mjs)/)?.[1]
+		if (!file) continue // shells straight to a tool (wrangler types --check)
+		if (allCmds.includes(file)) continue
+		if (UNPROVABLE_SCRIPTS[id]) {
+			console.log(`~  script:${id}: no mutation, declared unprovable — ${UNPROVABLE_SCRIPTS[id]}`)
+			continue
+		}
+		console.error(
+			`✗ UNCOVERED GATE  script:${id} (${file}) is named by an ADR's **Enforced by:** but no mutation runs it — add one here in the same commit.`,
+		)
+		failed++
+	}
 	for (const id of [...declared].sort()) {
 		if (covered.has(id)) continue
 		if (UNPROVABLE[id]) {
