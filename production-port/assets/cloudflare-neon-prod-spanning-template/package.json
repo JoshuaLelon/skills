@@ -28,6 +28,9 @@
 		"verify:gates": "node scripts/verify-gates.mjs",
 		"check": "npm run docs:check && npm run config:traps && npm run types:check && npm run lint && npm run lint:arch && npm run gate && npm run test && npm run test:int && npm run e2e && npm run check:startup",
 		"deploy": "npm run check && npm run build && wrangler deploy",
+		"deploy:preview": "npm run check && npm run build && wrangler versions upload",
+		"versions": "wrangler versions list",
+		"rollback": "wrangler rollback",
 		"port:status": "node scripts/port-from-prototype.mjs --status"
 	},
 	"dependencies": {
