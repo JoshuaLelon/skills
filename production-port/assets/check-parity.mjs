@@ -22,6 +22,31 @@ const PAIRS = [
 	["prototyping/assets/gate.mjs", "production-port/assets/cloudflare-neon-prod-spanning-template/scripts/gate.mjs"],
 ];
 
+// Some files must not be IDENTICAL — they must share a PROPERTY. Both skills'
+// playwright configs need `reuseExistingServer: false` and a port that is not
+// Vite's 5173 default, but they must use DIFFERENT ports so a prototype and the
+// app it is being ported into can run at once. Byte-parity cannot express that,
+// which is why this trap was fixed on the production side and shipped broken on
+// the prototype side for as long as it did — it was in nobody's list.
+const PROPERTIES = [
+	{
+		files: [
+			"prototyping/assets/template/playwright.config.ts",
+			"production-port/assets/cloudflare-neon-prod-spanning-template/playwright.config.ts",
+		],
+		test: (src) => /reuseExistingServer:\s*false/.test(src),
+		why: "reuseExistingServer must be literal false — otherwise e2e adopts whatever already listens on the port and grades a different app",
+	},
+	{
+		files: [
+			"prototyping/assets/template/playwright.config.ts",
+			"production-port/assets/cloudflare-neon-prod-spanning-template/playwright.config.ts",
+		],
+		test: (src) => !/localhost:5173|port:\s*5173/.test(src),
+		why: "5173 is Vite's default and therefore the port every other project on the machine is also using; pick your own",
+	},
+];
+
 let bad = 0;
 for (const [a, b] of PAIRS) {
 	try {
@@ -34,5 +59,24 @@ for (const [a, b] of PAIRS) {
 		bad++;
 	}
 }
+for (const { files, test, why } of PROPERTIES) {
+	for (const f of files) {
+		let src = "";
+		try {
+			src = readFileSync(join(REPO, f), "utf8");
+		} catch {
+			console.error(`parity: MISSING — ${f}`);
+			bad++;
+			continue;
+		}
+		if (!test(src)) {
+			console.error(`parity: PROPERTY — ${f}: ${why}`);
+			bad++;
+		}
+	}
+}
+
 if (bad) process.exit(1);
-console.log(`parity: OK (${PAIRS.length} shared files identical)`);
+console.log(
+	`parity: OK (${PAIRS.length} shared files identical, ${PROPERTIES.length} shared properties hold)`,
+);

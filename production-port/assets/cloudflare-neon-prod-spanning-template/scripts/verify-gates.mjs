@@ -68,7 +68,13 @@ d=$(mktemp -d)
 mkdir -p "$d/docs/decisions" "$d/src"
 mkdir -p "$d/scripts"
 cp scripts/docs-check.mjs "$d/scripts/"
-git archive HEAD docs/decisions | tar -x -C "$d" 2>/dev/null || cp docs/decisions/*.md "$d/docs/decisions/"
+git archive HEAD docs/decisions 2>/dev/null | tar -x -C "$d" 2>/dev/null
+# Seed from HEAD so an unrelated uncommitted edit cannot poison the probe, but
+# verify the OUTCOME rather than the exit code: git archive fails in a repo with
+# no commits (a fresh app, per the README) while tar still exits 0 on empty
+# input, so a fallback guarded by || never fired and the probe ran against zero
+# ADRs — three controls failing for a reason unrelated to the rules they test.
+[ -n "$(ls -A "$d/docs/decisions" 2>/dev/null)" ] || cp docs/decisions/*.md "$d/docs/decisions/"
 printf 'seed\\n' > "$d/llms.txt"
 cd "$d"
 git init -q .

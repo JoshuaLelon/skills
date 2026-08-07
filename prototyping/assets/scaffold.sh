@@ -40,6 +40,12 @@ import path from 'node:path'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  // A port of our own, not Vite's 5173 default. Playwright pins this exact port
+  // with reuseExistingServer:false, so a collision is a hard failure — and 5173
+  // is what every other Vite project on the machine also wants. It is also
+  // distinct from the production template's 5273, so a prototype and the app it
+  // is being ported INTO can run side by side during the mapping loop.
+  server: { port: 5373, strictPort: true },
   plugins: [tailwindcss(), reactRouter()],
   // The `@` alias shadcn's registry components import (`@/lib/utils`). It must
   // exist HERE as well as in tsconfig: tsconfig satisfies tsc and shadcn's
