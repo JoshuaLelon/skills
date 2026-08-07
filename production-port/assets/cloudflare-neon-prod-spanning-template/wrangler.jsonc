@@ -5,13 +5,26 @@
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
   // ADR-0009: platform-native observability is the whole logging backend.
-  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  // traces: spans for every binding call, subrequest and handler, no code
+  // change. FREE UNTIL 2026-10-01 — after that each span is one observability
+  // event at the same per-event price as a log line, so head_sampling_rate:1
+  // on BOTH keys is a real bill. Revisit the trace rate then (ADR-0009).
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "traces": { "enabled": true, "head_sampling_rate": 1 }
+  },
   "upload_source_maps": true,
-  // ADR-0001: Hyperdrive with the DIRECT (non-pooler) Neon string — Hyperdrive
-  // does the pooling. Local dev + tests use DATABASE_URL from .dev.vars instead
-  // (db/client.server.ts falls back when the binding is absent locally).
+  // ADR-0019: placement is measured, not assumed. This app's hot routes issue
+  // 4–5 SEQUENTIAL round trips (a drizzle transaction is BEGIN + stmts +
+  // COMMIT), so co-locating the Worker with the pool pays. Single-query routes
+  // gain nothing — the round trip only moves. Set region to the Neon project's
+  // region; Placement Hints (not mode:"smart") because this is one known,
+  // single-homed database.
+  // "placement": { "region": "[FILL: Neon region, e.g. aws:us-east-1]" },
   // ADR-0001: Hyperdrive carries the DIRECT (non-pooler) Neon string —
-  // Hyperdrive does the pooling. localConnectionString serves dev/tests.
+  // Hyperdrive does the pooling. localConnectionString serves dev/tests
+  // (db/client.server.ts falls back when the binding is absent locally).
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "0ac30af414fe476c93a4c24b54f951c4", "localConnectionString": "postgres://postgres:local@127.0.0.1:55433/app" }
   ],

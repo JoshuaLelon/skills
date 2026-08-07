@@ -4,12 +4,21 @@
   "main": "./build/server/index.js",
   // ADR-0009: platform-native observability is the whole logging backend.
   // Structured console objects from lib/log get every field indexed.
+  // traces: automatic spans for binding calls, subrequests and handlers.
+  // FREE UNTIL 2026-10-01 — after that a span costs the same as a log event,
+  // so 1.0 on BOTH keys is a real bill. Drop the TRACE rate first (logs carry
+  // the wide event; traces are the supporting detail) — ADR-0009/ADR-0016.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-    "traces": { "enabled": true } // free until Oct 2026; revisit sampling then
+    "traces": { "enabled": true, "head_sampling_rate": 1 }
   },
   "upload_source_maps": true, // stack traces resolve to TS in Workers Logs
+  // ADR-0019: measure before setting. Placement pays when a request makes
+  // SEVERAL sequential DB round trips; a one-query route gains nothing. Use a
+  // Hint (region/host) for one known single-homed DB; mode:"smart" only when
+  // the backends are several, unknown, or replicated.
+  // "placement": { "region": "[FILL: db region, e.g. aws:us-east-1]" },
   // ADR-0001: Hyperdrive with the DIRECT (non-pooler) Neon string — Hyperdrive
   // does the pooling. The -pooler string is for outside-Workers processes;
   // the bare direct string is for migrations only.
