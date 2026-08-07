@@ -111,6 +111,12 @@ and universal**:
   path (config-traps checks the scripts; nothing can check your fingers).
 - **Deprecated-but-working is not broken.** Prefer new forms in new code;
   never mass-rewrite working schemas or APIs to chase a deprecation list.
+- **`drizzle-kit generate` on a RENAME prompts, and its default answer destroys
+  data.** It cannot tell a rename from a drop-plus-add, so it asks — and the
+  pre-highlighted option is "create table", which emits DROP + CREATE. Move the
+  selection to the rename line before answering. The prompt needs a TTY, not a
+  human: drive it from a pty (`pty.spawn`, `expect`) if you are not one. Without
+  a TTY it throws, the throw is swallowed, and it exits 0 having written nothing.
 - **Execution outranks documentation on this stack** — peer-dep ranges lie and
   "removed" APIs live; smoke-run before encoding any version claim as a rule
   (that's what §7's ledger is for).

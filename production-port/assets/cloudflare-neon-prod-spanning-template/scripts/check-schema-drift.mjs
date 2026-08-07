@@ -185,7 +185,12 @@ for (const t of dropped)
 	problems.push(`table ${t} is built by the migrations but is gone from the schema`)
 if (added.length && dropped.length)
 	problems.push(
-		`  ↑ an added and a dropped table together may be ONE RENAME. This gate cannot tell those apart — only you can. Run \`npx drizzle-kit generate\` at a real terminal; it will ask.`,
+		`  ↑ an added and a dropped table together may be ONE RENAME. This gate cannot tell those apart — only you can. Run \`npx drizzle-kit generate\` and answer its prompt.`,
+		`     It needs a TTY, which is NOT the same as needing a human: a pty works.`,
+		`     Python: pty.spawn(['npx','drizzle-kit','generate'])  ·  or: expect(1)`,
+		`     READ THE MENU BEFORE ANSWERING. The highlighted default is "create`,
+		`     table", which generates DROP + CREATE and destroys every row. The`,
+		`     rename option is a separate line you must move to.`,
 	)
 
 // Then everything else, at leaf granularity.

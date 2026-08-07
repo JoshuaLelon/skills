@@ -261,9 +261,16 @@ const MUTATIONS = [
 		expect: 'stale',
 	},
 	{
-		gate: 'docs-tracks: current pins pass --check (negative control)',
+		// HERMETIC, deliberately. This asserted the LIVE tree's pins were current,
+		// which made it fail whenever anyone had legitimately stale pins mid-work —
+		// reporting "FALSE POSITIVE: the gate flags what it should accept" and
+		// advising "fix the config or the rule's file globs" when the real fix was
+		// `npm run docs:bless`. A control that reads mutable repo state tests the
+		// state, not the rule. Copy the docs into a scratch tree, bless there, and
+		// assert the checker then agrees.
+		gate: 'docs-tracks: freshly blessed pins pass --check (negative control)',
 		files: {},
-		cmd: 'node scripts/docs-tracks.mjs --check',
+		cmd: `d=$(mktemp -d); cp -R docs "$d/"; (cd "$d" && node ${ROOT}/scripts/docs-tracks.mjs --bless >/dev/null && node ${ROOT}/scripts/docs-tracks.mjs --check); rc=$?; rm -rf "$d"; exit $rc`,
 		expectClean: true,
 	},
 	{
