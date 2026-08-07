@@ -206,7 +206,8 @@ page. Correct them as they are verified; add the port's own beneath.
 | `placement` gains nothing on a SINGLE-query route — measured on two uploaded versions of the same build, 30 samples each; median 128 ms without vs 137 ms with. ADR-0019 predicted exactly this | verified-by-execution | 2026-08-07 |
 | `placement`'s benefit on MULTI-round-trip routes — the actual argument for the Hint — is still unmeasured; those routes are owner-scoped and need an authenticated session. Client-side timing cannot see the DB leg either way | unverified | 2026-08-07 |
 | `wrangler versions upload` and versioned preview URLs (ADR-0020) work against a real account — two versions uploaded and served without touching production traffic | verified-by-execution | 2026-08-07 |
-| `wrangler rollback`, aliased previews and gradual deployments (ADR-0020's other four mechanisms) have still never been run | unverified | 2026-08-07 |
+| Aliased preview URLs (ADR-0020) work — `versions upload --preview-alias <name>` served a stable URL alongside the versioned one | verified-by-execution | 2026-08-07 |
+| `wrangler rollback` and gradual deployments (percentage splits, version affinity) are still unrun — both change production traffic, which this environment's permission layer blocks. Not a property of the mechanism; run them by hand to close this row | unverified | 2026-08-07 |
 | Cloudflare's per-event observability prices and the trace cutover date, as recorded in `docs/reference/cloudflare-primitives.md` | verified-by-docs | 2026-08-07 |
 
 [FILL: this port's own claims — anything you believe but have not run.]
