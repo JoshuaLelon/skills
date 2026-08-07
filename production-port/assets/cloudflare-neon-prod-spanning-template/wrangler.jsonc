@@ -9,6 +9,24 @@
   // change. FREE UNTIL 2026-10-01 — after that each span is one observability
   // event at the same per-event price as a log line, so head_sampling_rate:1
   // on BOTH keys is a real bill. Revisit the trace rate then (ADR-0009).
+  //
+  // THE REVISIT, SPELLED OUT so it is a config edit and not a research task.
+  // ADR-0016 forbids the obvious move (lowering the log head rate — head
+  // sampling loses the one event that explains the outage) and names tail
+  // sampling behind an OTLP sink as the upgrade. That upgrade is these keys:
+  //
+  //   "traces": {
+  //     "enabled": true,
+  //     "head_sampling_rate": 1,
+  //     "persist": false,                        // stop paying $0.60/M storage
+  //     "destinations": ["<dashboard-destination-name>"]   // still pay $0.05/M
+  //   }
+  //
+  // `persist: false` WITHOUT a destinations entry discards the spans instead of
+  // saving money, and export is Paid-only — on Free it is not a lever at all.
+  // Left unset here on purpose: no destination exists yet, and this repo does
+  // not ship config it has not run (the same rule that keeps `placement`
+  // commented out). Current allowances and prices: docs/reference/cloudflare-primitives.md.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

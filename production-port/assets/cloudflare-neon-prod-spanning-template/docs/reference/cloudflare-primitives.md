@@ -347,8 +347,20 @@ diffing) — unlike `vars` and bindings, which do not.
 **The date that matters: billing starts 2026-10-01**, for two separate meters.
 Dashboard storage bills at **$0.60/M events** on the quota shared with Workers
 Logs; OTLP **export** bills at **$0.05/M** on its own allowance. `persist: false`
-pays only the cheap one. Docs disagree on whether the included paid allowance is
-10M or 20M/month — plan against 10M.
+pays only the cheap one. The included allowance is **10M events/month per data
+type** — logs and traces each get their own 10M, which is the reading the
+earlier "10M or 20M?" ambiguity was groping at: the 20M figure is the two
+allowances summed, not one pooled quota. Free plan: **200k events/day**, and
+**no OTLP export at all** — export is Paid-only, so `persist: false` is not a
+Free-plan cost lever, it is a way to lose your telemetry.
+
+**The lever, when the bill arrives.** ADR-0016 rules out lowering the log head
+rate and names tail sampling behind an OTLP sink as the upgrade. That upgrade
+is these keys: add a dashboard destination, point `traces.destinations` at it,
+and set `traces.persist: false` — spans reach your sink and stop accruing the
+$0.60/M dashboard meter, leaving the $0.05/M export meter. `persist: false`
+without a `destinations` entry discards the signal rather than saving money,
+so the destination is not optional.
 
 **`observability.enabled: true` enables logs only.** Traces require
 `traces.enabled` explicitly. A future `compatibility_date` will make `enabled`
