@@ -178,6 +178,31 @@ const MUTATIONS = [
 		expectClean: true,
 	},
 	{
+		// 0024 keeps the sequence contiguous so only the enforcement problem fires.
+		gate: 'adr-graph: an ADR naming a rule that does not exist is refused',
+		files: {
+			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** —\n> **Enforced by:** ast-grep:no-such-rule-exists\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
+		},
+		cmd: 'node scripts/adr-graph.mjs --validate',
+		expect: 'names no rule or script that exists',
+	},
+	{
+		gate: 'adr-graph: a well-formed ADR stays silent (negative control)',
+		files: {
+			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** 0001\n> **Enforced by:** none — judgement\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
+		},
+		cmd: 'node scripts/adr-graph.mjs --validate',
+		expectClean: true,
+	},
+	{
+		gate: 'adr-graph: an edge pointing at a missing ADR is refused',
+		files: {
+			'docs/decisions/0024-__mut__.md': `# ADR-0024 — Planted\n\n> **Kind:** decision · **Status:** accepted · **Updated:** x\n> **Level:** 4 — mechanism\n> **Constrained by:** 0999\n> **Enforced by:** none — judgement\n> **Applies to:** any\n> **Scope:** planted by verify-gates.\n`,
+		},
+		cmd: 'node scripts/adr-graph.mjs --validate',
+		expect: "Constrained by '0999' does not resolve",
+	},
+	{
 		gate: 'depcruise: store-is-pure',
 		files: {
 			'src/store/__mut__.ts': "import { useState } from 'react'\nexport const m = useState\n",

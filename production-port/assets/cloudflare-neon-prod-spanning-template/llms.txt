@@ -38,3 +38,7 @@
 - [0023-choosing-an-edge-request-primitive.md](docs/decisions/0023-choosing-an-edge-request-primitive.md) · **L3**: decides what runs at the request edge rather than in a loader. Does not decide authentication (ADR-0004) or where the Worker executes (ADR-0019).
 - [README.md](docs/decisions/README.md): Decisions (ADRs)
 - [adr-template.md](docs/decisions/adr-template.md): [FILL: what this decides — and the neighbouring decision it does not, with its ADR number]
+
+## Reference — what is true
+
+- [adr-graph.md](docs/reference/adr-graph.md) · **L3**: the decision tree, derived from every ADR's status block. Do not edit — run `npm run docs:adr-graph`. Edges live in the ADRs.

@@ -83,9 +83,7 @@ for (const f of modified.filter((f) => /^docs\/decisions\/\d{4}-.+\.md$/.test(f)
 	// is the argument: Decision, Context, Alternatives declined, Consequences.
 	// Edges (`Constrained by:`, `Enforced by:`) have to stay current or the
 	// generated graph lies, and re-deciding is not what updating them means.
-	const changed = diff
-		.split('\n')
-		.filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l))
+	const changed = diff.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l))
 	const bodyChanged = changed.some((l) => l.slice(1).trim() !== '' && !/^[+-]>\s/.test(l))
 	if (bodyChanged && !/superseded/i.test(diff))
 		problems.push(
