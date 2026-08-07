@@ -4,6 +4,7 @@
 // fails until this has run, so it cannot be forgotten.
 //
 //   node scripts/rename-app.mjs my-app
+import { execSync } from 'node:child_process'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const name = process.argv[2]
@@ -59,6 +60,18 @@ writeFileSync('wrangler.jsonc', w)
 		}
 	}
 	if (stamped) console.log(`rename-app: stamped ${stamped} ADR adoption date(s) as ${today}`)
+}
+
+// AGENTS.md's generated sections. Both had generators and neither was ever run,
+// so every app shipped with §1 and §2 as [FILL:] — and three separate agents
+// reported that the always-loaded file taught them nothing. A section with a
+// generator that nobody invokes is the same failure as a hand-maintained index.
+for (const gen of ['export-stack.mjs --stamp', 'adr-graph.mjs']) {
+	try {
+		execSync(`node scripts/${gen}`, { stdio: 'pipe' })
+	} catch {
+		console.error(`rename-app: could not run scripts/${gen} — fill AGENTS.md by hand`)
+	}
 }
 
 // llms.txt head: reset to the app (regenerate below picks up the doc tree)

@@ -28,6 +28,7 @@
 		"includes": [
 			"src/**",
 			"e2e/**",
+			"integration/**",
 			"scripts/**",
 			"*.json",
 			"*.ts",

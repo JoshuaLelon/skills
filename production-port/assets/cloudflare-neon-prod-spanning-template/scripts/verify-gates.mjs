@@ -225,6 +225,18 @@ const MUTATIONS = [
 		expectClean: true,
 	},
 	{
+		gate: 'docs-tracks: a stale pin fails --check',
+		files: {},
+		cmd: `printf '\\n<!-- probe -->\\n' >> docs/reference/measurements.md; node scripts/docs-tracks.mjs --check; rc=$?; git checkout -- docs/reference/measurements.md; exit $rc`,
+		expect: 'stale',
+	},
+	{
+		gate: 'docs-tracks: current pins pass --check (negative control)',
+		files: {},
+		cmd: 'node scripts/docs-tracks.mjs --check',
+		expectClean: true,
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.

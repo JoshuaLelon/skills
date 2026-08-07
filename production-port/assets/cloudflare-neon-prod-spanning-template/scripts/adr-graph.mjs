@@ -279,6 +279,31 @@ lines.push('')
 
 const generated = `${lines.join('\n').replace(/\n{3,}/g, '\n\n')}\n`
 
+// -- AGENTS.md §2, derived ----------------------------------------------------
+// A divergence from the seed IS a supersession edge; nothing else needs saying,
+// and a hand-written table here was [FILL:] in every app that ever existed.
+const divergenceBlock = () => {
+	const rows = adrs
+		.filter((a) => a.supersedes.length)
+		.flatMap((a) =>
+			a.supersedes.map((s) => {
+				const [n, topic] = s.split('#')
+				return `| ADR-${n}${topic ? ` (${topic})` : ''} | ADR-${a.n} — ${a.title} |`
+			}),
+		)
+	return rows.length
+		? ['| seed decision | replaced by |', '| --- | --- |', ...rows].join('\n')
+		: '*No divergences yet — this app still runs the seed decisions as accepted.*'
+}
+
+const AGENTS = 'AGENTS.md'
+let agentsOut = null
+if (existsSync(join(ROOT, AGENTS))) {
+	const cur = readFileSync(join(ROOT, AGENTS), 'utf8')
+	const re = /(<!-- divergences:start -->)[\s\S]*?(<!-- divergences:end -->)/
+	if (re.test(cur)) agentsOut = cur.replace(re, `$1\n${divergenceBlock()}\n$2`)
+}
+
 // -- emit --------------------------------------------------------------------
 if (problems.length) {
 	console.error(`adr-graph:\n  ${[...new Set(problems)].join('\n  ')}`)
@@ -301,8 +326,13 @@ if (VALIDATE) {
 		console.error(`adr-graph: ${OUT} is stale — run: node scripts/adr-graph.mjs`)
 		process.exit(1)
 	}
+	if (agentsOut && agentsOut !== readFileSync(join(ROOT, AGENTS), 'utf8')) {
+		console.error(`adr-graph: ${AGENTS} §2 divergences is stale — run: node scripts/adr-graph.mjs`)
+		process.exit(1)
+	}
 	console.log('adr-graph: OK')
 } else {
 	writeFileSync(join(ROOT, OUT), generated)
-	console.log(`adr-graph: wrote ${OUT}`)
+	if (agentsOut) writeFileSync(join(ROOT, AGENTS), agentsOut)
+	console.log(`adr-graph: wrote ${OUT}${agentsOut ? ` and ${AGENTS} §2` : ''}`)
 }

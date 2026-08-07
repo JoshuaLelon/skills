@@ -18,7 +18,7 @@
 		"dev": "react-router dev",
 		"docs:adr-graph": "node scripts/adr-graph.mjs",
 		"docs:bless": "node scripts/docs-tracks.mjs --bless",
-		"docs:check": "node scripts/docs-check.mjs && node scripts/docs-index.mjs --check && node scripts/adr-graph.mjs --check && node scripts/docs-tracks.mjs",
+		"docs:check": "node scripts/docs-check.mjs && node scripts/docs-index.mjs --check && node scripts/adr-graph.mjs --check && node scripts/docs-tracks.mjs --check",
 		"docs:fillins": "node scripts/docs-fillins.mjs",
 		"docs:index": "node scripts/docs-index.mjs",
 		"docs:tracks": "node scripts/docs-tracks.mjs",

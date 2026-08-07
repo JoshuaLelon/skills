@@ -56,15 +56,22 @@ with more than it catches is worse than no rule:
 | invariant | enforced by |
 | --- | --- |
 | llms.txt generated, never edited | docs-index --check (pre-commit + CI) |
-| doc add/delete/rename updates llms.txt same-commit | docs-check (staged) |
-| ADR citations in code resolve | docs-check (staged) |
-| ADRs immutable; only legal edit is the superseded-by pointer | docs-check (staged) |
-| status block present; Kind matches folder; Level present | docs-check (staged docs) |
-| design docs carry a falsifiable Built line | docs-check (staged docs) |
+| doc add/delete/rename updates llms.txt same-commit | docs-check |
+| ADR citations in code resolve | docs-check |
+| ADR BODIES immutable (the status block is not) | docs-check |
+| status block present; Kind matches folder; Level present | docs-check |
+| design docs carry a falsifiable Built line | docs-check |
 | [FILL:] markers worked down over time | docs:fillins — a REPORT, by design |
 | generated docs (llms.txt, adr-graph.md) match their sources | docs-index --check, adr-graph --check |
 | ADR edges and enforcement ids resolve | adr-graph (numbering, cycles, missing rules) |
 | no price or dated deadline inside an immutable ADR | docs-check — it belongs in `reference/`, which can be corrected |
-| prose that RESTS on another doc is re-read when that doc moves | docs:tracks — a REPORT; `Tracks: path@blob`, `docs:bless` records "I looked". It proves a human looked, never that the prose is right |
+| prose that RESTS on another doc is re-read when that doc moves | docs:tracks — a GATE in `npm run check` (`--check`), a report in pre-commit. `Tracks: path@blob`; `docs:bless -- <adr>` records "I looked", scoped. It proves a human looked, never that the prose is right — but an unread dependency no longer ships green |
 | level direction (rest on things above, never below) | JUDGMENT — deliberately ungated; graduates to a gate only after confirmed drift (see the production-port skill's docs-system reference) |
 | doc content matches reality | the fidelity audit + the ledger — no mechanical check pretends to cover this |
+
+**What "docs-check" scans**: staged changes PLUS the working tree. As a
+pre-commit hook it runs `--staged` and grades only the commit being made; run any
+other way — `npm run check`, CI, by hand — it also sees uncommitted work, because
+a verification command that ignores your unstaged edits reports a green it has
+not earned. It prints how many files it examined, so "nothing was validated" is
+never disguised as "everything passed".

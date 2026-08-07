@@ -4,28 +4,71 @@ Always-loaded rules file. It may RESTATE a fact from any doc level; it may not
 ORIGINATE one — a fact stated only here has no home that constrains it. Rules
 live here one line each; the owning doc carries the reasoning.
 
-## 0. Precedence when documents conflict
+## 0. Where to look
 
-This file > `docs/design/*.md` > the production-port skill references
-(react-patterns, testing, environments) > the playbook masters at
-`~/workspace/epic-*.md` > general knowledge.
-[FILL: adjust if the stack differs from the playbooks' assumptions]
+**`llms.txt` is the entry point** — one line per doc, with its level and scope.
+Start there, not here.
+
+This file does not outrank anything. It restates; it never originates, and a
+fact that lives only here has no doc constraining it. When it disagrees with a
+doc, the doc wins and this file is stale — an always-loaded file that could
+override `decisions/` would be a way to overturn an immutable ADR by editing a
+convenience copy of it.
+
+Reasoning lives in the owning doc: `docs/decisions/` for what was decided and
+why, `docs/reference/` for what is currently true, `docs/design/` for how it
+should behave, `docs/conventions/documentation.md` for how the docs work.
 
 ## 1. Stack
 
 <!-- stack-index:start -->
-[FILL: run `node scripts/export-stack.mjs --stamp` to generate this table from
-package.json — never hand-write versions; the hand-written version listed six
-uninstalled packages within days]
+Generated from package.json by export-stack.mjs — do not hand-edit.
+
+| package | version | kind |
+| --- | --- | --- |
+| @anthropic-ai/sdk | 0.115.0 | runtime |
+| drizzle-orm | 0.45.2 | runtime |
+| isbot | 5.1.32 | runtime |
+| pg | 8.22.0 | runtime |
+| react | 19.2.8 | runtime |
+| react-dom | 19.2.8 | runtime |
+| react-router | 8.3.0 | runtime |
+| @ast-grep/cli | ^0.45.0 | dev |
+| @biomejs/biome | ^2.5.7 | dev |
+| @cloudflare/vite-plugin | 1.50.0 | dev |
+| @cloudflare/workers-types | 5.20260801.1 | dev |
+| @playwright/test | 1.62.1 | dev |
+| @react-router/dev | 8.3.0 | dev |
+| @tailwindcss/postcss | ^4.3.3 | dev |
+| @types/node | 24.10.1 | dev |
+| @types/pg | 8.20.3 | dev |
+| @types/react | 19.2.18 | dev |
+| @types/react-dom | 19.2.4 | dev |
+| dependency-cruiser | ^18.1.1 | dev |
+| drizzle-kit | 0.31.10 | dev |
+| knip | ^6.32.0 | dev |
+| lefthook | ^2.1.10 | dev |
+| oxlint | ^1.77.0 | dev |
+| tailwindcss | 4.3.3 | dev |
+| typescript | 5.9.3 | dev |
+| vite | 8.2.0 | dev |
+| vitest | ^4.1.10 | dev |
+| wrangler | 4.118.0 | dev |
 <!-- stack-index:end -->
 
-## 2. Divergences from the playbooks
+## 2. Divergences from the seed
 
-Where this app deliberately departs from the playbooks' defaults, with the
-reason. (The playbooks assume: Prisma, Conform+Zod, MSW, password auth,
-progressive enhancement — diverge knowingly, and write it down here.)
+Every ADR that supersedes a seed decision — this app departing from what it
+inherited. Generated from the `Supersedes:` edges; run `npm run docs:adr-graph`.
 
-[FILL: the divergence table for this app]
+<!-- divergences:start -->
+| seed decision | replaced by |
+| --- | --- |
+| ADR-0009 (traces) | ADR-0016 — Observability depth: logs answer "what happened", traces "what was slow" |
+| ADR-0011 (release) | ADR-0020 — Release mechanics: a deploy you can preview, split, and undo |
+| ADR-0006 (integration-runtime) | ADR-0021 — Runtime parity: the integration tier runs in workerd, against the production build |
+| ADR-0001 (ai-gateway) | ADR-0022 — Model access: the seam is decided, the route to the model is not |
+<!-- divergences:end -->
 
 ## 3. Banned patterns
 
