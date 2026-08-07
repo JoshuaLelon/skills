@@ -96,7 +96,7 @@ alongside it; these edges are why an untouched file is not the last word.
 | ADR-0018 | `script:types:check`, `script:config:traps` |
 | ADR-0019 | *judgement* |
 | ADR-0020 | *judgement* |
-| ADR-0021 | *judgement* |
+| ADR-0021 | `script:config:traps` |
 | ADR-0022 | `ast-grep:one-door-model` |
 | ADR-0023 | *judgement* |
 | ADR-0024 | *judgement* |

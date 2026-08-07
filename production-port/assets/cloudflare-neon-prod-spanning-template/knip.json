@@ -7,7 +7,7 @@
 		"scripts/*.mjs",
 		"integration/**/*.test.ts"
 	],
-	"project": ["src/**", "e2e/**", "scripts/**", "integration/**"],
+	"project": ["src/**", "e2e/**", "scripts/**", "integration/**", "!**/*.d.mts"],
 	"include": ["files", "dependencies", "exports", "types", "duplicates"],
 	"ignore": ["src/_port/**", "e2e/_port/**"],
 	"tags": ["-@public"]

@@ -3,7 +3,7 @@
 > **Kind:** decision · **Status:** accepted · **Updated:** [FILL: adoption date]
 > **Level:** 4 — mechanism
 > **Constrained by:** 0001
-> **Enforced by:** none — judgement
+> **Enforced by:** script:config:traps
 > **Applies to:** cloudflare
 > **Supersedes:** 0006#integration-runtime
 > **Scope:** decides which runtime each test tier executes in. ADR-0006 decided

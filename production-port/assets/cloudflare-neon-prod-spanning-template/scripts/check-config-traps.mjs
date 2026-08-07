@@ -275,6 +275,41 @@ if (!IS_TEMPLATE_HOME) {
 	}
 }
 
+// 4c. ADR-0021: the integration tier declares its runtime, and that runtime is
+// workerd running ./build — not Node. The failure mode is silent and it already
+// happened once: the config said `environment: 'node'`, the tests imported
+// loaders and the query module straight into the Node process, and the tier
+// reported coverage of "the server" it did not have. Two halves, both easy to
+// drop by accident:
+//   - the tier must START the built Worker (createTestHarness), and
+//   - the script must BUILD first, or it starts yesterday's bundle — the same
+//     stale-artifact trap as check:startup, one tier over.
+const intConfig = readdirSync(ROOT).find((f) => /^vitest\.integration\.config\./.test(f))
+if (intConfig) {
+	let intFiles = []
+	try {
+		intFiles = readdirSync(join(ROOT, 'integration'), { recursive: true })
+	} catch {
+		/* no integration/ dir */
+	}
+	const wiring = intFiles
+		.filter((f) => /\.(m?[jt]s|tsx)$/.test(f))
+		.map((f) => read(join('integration', f)) ?? '')
+		.join('\n')
+	if (!/createTestHarness\s*\(/.test(wiring))
+		problems.push(
+			`${intConfig} exists but nothing under integration/ calls createTestHarness() — the integration tier must run the app in WORKERD against ./build (ADR-0021); importing loaders into the Node process tests the server in a runtime it never runs in`,
+		)
+	if (!scripts['test:int'])
+		problems.push(
+			`no scripts.test:int — ${intConfig} exists but nothing runs it, so the tier is decoration (ADR-0021)`,
+		)
+	else if (!/build/.test(scripts['test:int']))
+		problems.push(
+			'scripts.test:int does not build first — the integration tier starts ./build in workerd, so this grades a stale bundle (ADR-0021, ADR-0017)',
+		)
+}
+
 if (problems.length) {
 	console.error(`config-traps:\n  ${problems.join('\n  ')}`)
 	process.exit(1)

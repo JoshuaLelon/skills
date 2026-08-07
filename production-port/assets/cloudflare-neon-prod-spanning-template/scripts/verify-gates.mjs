@@ -87,25 +87,27 @@ exit $rc
 // Traps that assert a KEY EXISTS in a committed config cannot be proven by
 // planting a new file — the harness's usual move. They were therefore neither
 // proven nor declared unprovable: quietly trusted, under a banner reading
-// "Green means something". Move the real file aside, delete the key, run the
-// trap, restore. Cheap, and it makes the assertion real.
-const wranglerProbe = (sedExpr) =>
-	`cp wrangler.jsonc /tmp/wr.bak && sed -i.x '${sedExpr}' wrangler.jsonc && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/wr.bak wrangler.jsonc; rm -f wrangler.jsonc.x /tmp/wr.bak; exit $rc`
-
-// Schema drift lives in a file that already exists, so the harness's usual move
-// — plant a new file, delete it — cannot express it. Same shape as
-// wranglerProbe: move the real schema aside, edit it, run the gate, restore.
-// Double-quoted so the expression can contain the single quotes a TS string
-// literal needs; it must therefore stay free of $, backticks and backslashes.
+// "Green means something". Move the real file aside, break it, run the trap,
+// restore.
 //
-// The backup name is specific to this probe on purpose. A generic /tmp/x.bak is
-// shared state between probes and with whatever a human is doing in another
-// shell, and the restore silently copies back the wrong file. Note the standing
-// hazard in all of these: if the harness is killed mid-probe (SIGPIPE from a
-// `| head` on its output is the easy way), the restore never runs and the
-// working tree keeps the mutation. `git checkout` on the named file is the fix.
+// The backup path is mktemp'd rather than a fixed /tmp/x.bak, because a fixed
+// name is shared with every other checkout of this template on the machine: two
+// runs overlapping means one deletes the only copy of the other's config and
+// leaves a MUTATED file in a working tree. Observed, not theorised.
+// `q` is the quote wrapped around the sed expression: single by default, double
+// where the expression itself must contain single quotes (a TS string literal).
+// A double-quoted expression must then stay free of $, backticks and backslashes.
+//
+// Standing hazard in every probe of this shape: if the harness is killed
+// mid-probe, the restore never runs and the mutation stays in the working tree.
+// `git checkout` the named file is the fix.
+const restoreProbe = (file, sedExpr, cmd = 'node scripts/check-config-traps.mjs', q = "'") =>
+	`bak=$(mktemp) && cp ${file} "$bak" && sed -i.x ${q}${sedExpr}${q} ${file} && ${cmd}; rc=$?; cp "$bak" ${file}; rm -f ${file}.x "$bak"; exit $rc`
+
+const wranglerProbe = (sedExpr) => restoreProbe('wrangler.jsonc', sedExpr)
+
 const schemaProbe = (sedExpr) =>
-	`cp src/db/schema.ts /tmp/verify-gates-schema.bak && sed -i.x "${sedExpr}" src/db/schema.ts && node scripts/check-schema-drift.mjs; rc=$?; cp /tmp/verify-gates-schema.bak src/db/schema.ts; rm -f src/db/schema.ts.x /tmp/verify-gates-schema.bak; exit $rc`
+	restoreProbe('src/db/schema.ts', sedExpr, 'node scripts/check-schema-drift.mjs', '"')
 
 const MUTATIONS = [
 	{
@@ -218,7 +220,7 @@ const MUTATIONS = [
 	{
 		gate: 'config-traps: AGENTS.md generator markers must exist',
 		files: {},
-		cmd: `cp AGENTS.md /tmp/ag.bak && sed -i.x 's/<!-- divergences:start -->/<!-- REMOVED -->/' AGENTS.md && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/ag.bak AGENTS.md; rm -f AGENTS.md.x /tmp/ag.bak; exit $rc`,
+		cmd: restoreProbe('AGENTS.md', 's/<!-- divergences:start -->/<!-- REMOVED -->/'),
 		expect: 'divergences:start',
 	},
 	{
@@ -228,7 +230,10 @@ const MUTATIONS = [
 		},
 		// Rewrite the real config in a scratch copy: the trap reads the committed
 		// file, so the mutation has to move it aside and restore it.
-		cmd: 'cp playwright.config.ts /tmp/pw.bak && sed -i.x "s/reuseExistingServer: false/reuseExistingServer: !process.env.CI/" playwright.config.ts && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/pw.bak playwright.config.ts; rm -f playwright.config.ts.x /tmp/pw.bak; exit $rc',
+		cmd: restoreProbe(
+			'playwright.config.ts',
+			's/reuseExistingServer: false/reuseExistingServer: !process.env.CI/',
+		),
 		expect: 'reuseExistingServer must be literal false',
 	},
 	{
@@ -260,6 +265,21 @@ const MUTATIONS = [
 		files: {},
 		cmd: 'node scripts/docs-tracks.mjs --check',
 		expectClean: true,
+	},
+	{
+		gate: 'config-traps: the integration tier must start the built Worker in workerd',
+		files: {},
+		cmd: restoreProbe('integration/harness.ts', 's/createTestHarness/harnessRipped/g'),
+		expect: 'must run the app in WORKERD',
+	},
+	{
+		gate: 'config-traps: test:int must build before it runs the tier',
+		files: {},
+		cmd: restoreProbe(
+			'package.json',
+			's|npm run build && vitest run --config vitest.integration.config.ts|vitest run --config vitest.integration.config.ts|',
+		),
+		expect: 'test:int does not build first',
 	},
 	{
 		gate: 'docs-check: ADR citation resolves',

@@ -32,7 +32,7 @@
 		"port:status": "node scripts/port-from-prototype.mjs --status",
 		"rollback": "wrangler rollback",
 		"test": "vitest run --passWithNoTests",
-		"test:int": "vitest run --config vitest.integration.config.ts",
+		"test:int": "npm run build && vitest run --config vitest.integration.config.ts",
 		"typecheck": "react-router typegen && tsc -b",
 		"types": "wrangler types",
 		"types:check": "wrangler types --check",

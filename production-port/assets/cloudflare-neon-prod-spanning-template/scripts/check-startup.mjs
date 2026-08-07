@@ -36,8 +36,8 @@
 // Raising a budget is a DECISION — record why in the commit, the same way an
 // ADR records one. Do not nudge it to make a red build green.
 import { execFileSync } from 'node:child_process'
-import { readdirSync, rmSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { rmSync } from 'node:fs'
+import { assertBuildFresh } from './build-freshness.mjs'
 
 // Baseline 318 KiB with lib/ai reachable. ~13% headroom: enough that ordinary
 // feature work does not trip it, tight enough that a second dependency the size
@@ -46,56 +46,15 @@ const MAX_GZIP_KIB = 360
 // Startup CPU should be ~0: module-scope work is what this catches — a
 // top-level client construction, a big table built at import time.
 const MAX_STARTUP_CPU_MS = 50
-const BUILD_DIR = 'build/server'
-
-const newestMtime = (dir, skip = /node_modules|^build$|^\.git$/) => {
-	let newest = 0
-	const walk = (d) => {
-		let entries
-		try {
-			entries = readdirSync(d, { withFileTypes: true })
-		} catch {
-			return
-		}
-		for (const e of entries) {
-			if (skip.test(e.name)) continue
-			const p = join(d, e.name)
-			if (e.isDirectory()) walk(p)
-			else if (/\.(ts|tsx|css|jsonc?|mjs)$/.test(e.name))
-				newest = Math.max(newest, statSync(p).mtimeMs)
-		}
-	}
-	walk(dir)
-	return newest
-}
 
 // Freshness: a build older than the newest source means we would measure an
-// artifact that no longer corresponds to the tree.
-let buildMtime = 0
-try {
-	buildMtime = Math.max(
-		...readdirSync(BUILD_DIR, { recursive: true }).map((f) => {
-			try {
-				return statSync(join(BUILD_DIR, f)).mtimeMs
-			} catch {
-				return 0
-			}
-		}),
-	)
-} catch {
-	console.error(
-		'check-startup:\n  no ./build — `wrangler check startup` measures the BUILD, not your source; run `npm run build` first',
-	)
-	process.exit(1)
-}
-for (const dir of ['src', 'workers']) {
-	if (newestMtime(dir) > buildMtime) {
-		console.error(
-			`check-startup:\n  ./build is older than ${dir}/ — this would measure a stale bundle; run \`npm run build\` first`,
-		)
-		process.exit(1)
-	}
-}
+// artifact that no longer corresponds to the tree. Shared with the integration
+// tier, which runs the same artifact in workerd (ADR-0021) and would grade the
+// same stale bundle.
+assertBuildFresh(
+	'check-startup',
+	'`wrangler check startup` measures the BUILD, not your source, so this would grade a stale bundle',
+)
 
 let out
 try {
