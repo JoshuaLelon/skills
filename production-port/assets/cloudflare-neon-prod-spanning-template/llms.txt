@@ -37,6 +37,7 @@
 - [0022-choosing-a-model-access-path.md](docs/decisions/0022-choosing-a-model-access-path.md) · **L3**: Model access: the seam is decided, the route to the model is not
 - [0023-choosing-an-edge-request-primitive.md](docs/decisions/0023-choosing-an-edge-request-primitive.md) · **L3**: The edge: settle a concern before your code pays for it
 - [0024-drizzle-column-conventions.md](docs/decisions/0024-drizzle-column-conventions.md) · **L4**: Column conventions: types, enums, jsonb, naming
+- [0025-schema-drift-compare-state-never-ask-for-a-diff.md](docs/decisions/0025-schema-drift-compare-state-never-ask-for-a-diff.md) · **L4**: Schema drift: compare state, never ask for a diff
 - [README.md](docs/decisions/README.md): Decisions (ADRs)
 - [adr-template.md](docs/decisions/adr-template.md): ADR-[FILL: NNNN] — [FILL: decision, stated as the choice made]
 

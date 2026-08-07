@@ -92,6 +92,21 @@ exit $rc
 const wranglerProbe = (sedExpr) =>
 	`cp wrangler.jsonc /tmp/wr.bak && sed -i.x '${sedExpr}' wrangler.jsonc && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/wr.bak wrangler.jsonc; rm -f wrangler.jsonc.x /tmp/wr.bak; exit $rc`
 
+// Schema drift lives in a file that already exists, so the harness's usual move
+// — plant a new file, delete it — cannot express it. Same shape as
+// wranglerProbe: move the real schema aside, edit it, run the gate, restore.
+// Double-quoted so the expression can contain the single quotes a TS string
+// literal needs; it must therefore stay free of $, backticks and backslashes.
+//
+// The backup name is specific to this probe on purpose. A generic /tmp/x.bak is
+// shared state between probes and with whatever a human is doing in another
+// shell, and the restore silently copies back the wrong file. Note the standing
+// hazard in all of these: if the harness is killed mid-probe (SIGPIPE from a
+// `| head` on its output is the easy way), the restore never runs and the
+// working tree keeps the mutation. `git checkout` on the named file is the fix.
+const schemaProbe = (sedExpr) =>
+	`cp src/db/schema.ts /tmp/verify-gates-schema.bak && sed -i.x "${sedExpr}" src/db/schema.ts && node scripts/check-schema-drift.mjs; rc=$?; cp /tmp/verify-gates-schema.bak src/db/schema.ts; rm -f src/db/schema.ts.x /tmp/verify-gates-schema.bak; exit $rc`
+
 const MUTATIONS = [
 	{
 		gate: 'ast-grep: no-date-now-in-domain',
@@ -322,6 +337,36 @@ const MUTATIONS = [
 		gate: 'adr-graph: a well-formed ADR stays silent (negative control)',
 		files: {},
 		cmd: `printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Constrained by:** 0001\\n> **Enforced by:** none — judgement\\n> **Scope:** planted.\\n' > docs/decisions/${NEXT_ADR}-probe.md; node scripts/adr-graph.mjs --validate; rc=$?; rm -f docs/decisions/${NEXT_ADR}-probe.md; exit $rc`,
+		expectClean: true,
+	},
+	{
+		gate: 'check-schema-drift: an added column with no migration is caught',
+		files: {},
+		cmd: schemaProbe(
+			"s/verb: text().notNull(),/verb: text().notNull(), drifted: text('drift_probe'),/",
+		),
+		expect: 'drift_probe',
+	},
+	{
+		// The case the obvious implementation misses. Copying `drizzle/` into a
+		// scratch dir and re-running `generate` hits an interactive prompt here,
+		// exits 0 and writes nothing — reporting CLEAN on a table rename. Kept as
+		// its own control so that regression is caught rather than reasoned about.
+		gate: 'check-schema-drift: a table RENAME is caught (not silently passed)',
+		files: {},
+		cmd: schemaProbe("s/'actions',/'audit_log',/"),
+		expect: 'public.audit_log is in the schema but no migration creates it',
+	},
+	{
+		// The false-positive control that matters for this gate specifically: it
+		// must read the DATABASE state, not the file's text. Renaming the exported
+		// TS binding changes schema.ts substantially while leaving the SQL
+		// identical — anything hashing or diffing the file would fire here.
+		gate: 'check-schema-drift: a TS-only edit with identical SQL stays silent (negative control)',
+		files: {},
+		cmd: schemaProbe(
+			's/export const actions = pgTable(/export const actionsRenamedInTs = pgTable(/',
+		),
 		expectClean: true,
 	},
 	{

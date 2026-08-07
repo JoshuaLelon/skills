@@ -37,6 +37,7 @@ const CHECKS = [
 	'test',
 	'test:int',
 	'e2e',
+	'check:schema-drift',
 	'check:startup',
 ]
 

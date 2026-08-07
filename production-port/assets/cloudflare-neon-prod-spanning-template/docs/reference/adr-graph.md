@@ -21,6 +21,7 @@ cannot go stale; removing the opportunity beats detecting the failure.
 - **ADR-0001** (L4) — Cloudflare for everything that runs; Neon for everything that persists
   - **ADR-0002** (L4) — Drizzle, not Prisma
     - **ADR-0024** (L4) — Column conventions: types, enums, jsonb, naming
+    - **ADR-0025** (L4) — Schema drift: compare state, never ask for a diff
   - **ADR-0009** (L4) — Logging: one door, one flat JSON object, platform-indexed
     - **ADR-0016** (L3) — Observability depth: logs answer "what happened", traces "what was slow"
   - **ADR-0011** (L4) — CI runs the cheap half, honestly; deploys are scripted and manual
@@ -56,7 +57,7 @@ cannot go stale; removing the opportunity beats detecting the failure.
 | --- | --- |
 | `any` | ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0012, ADR-0013, ADR-0022 |
 | `cloudflare` | ADR-0001, ADR-0009, ADR-0011, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021, ADR-0023 |
-| `neon` | ADR-0001, ADR-0002, ADR-0014, ADR-0019, ADR-0024 |
+| `neon` | ADR-0001, ADR-0002, ADR-0014, ADR-0019, ADR-0024, ADR-0025 |
 | `react-router` | ADR-0003, ADR-0007, ADR-0008 |
 
 ## Partial supersessions
@@ -99,4 +100,5 @@ alongside it; these edges are why an untouched file is not the last word.
 | ADR-0022 | `ast-grep:one-door-model` |
 | ADR-0023 | *judgement* |
 | ADR-0024 | *judgement* |
+| ADR-0025 | `script:check:schema-drift` |
 

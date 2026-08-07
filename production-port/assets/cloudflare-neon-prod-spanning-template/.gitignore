@@ -9,3 +9,7 @@ playwright-report
 # `wrangler check startup` / check-startup.mjs artifact
 *.cpuprofile
 *.tsbuildinfo
+
+# check-schema-drift.mjs scratch dir. It always deletes itself; this covers the
+# run that is killed mid-probe, so a stray probe never reaches a commit.
+.schema-drift-probe
