@@ -314,6 +314,47 @@ const MUTATIONS = [
 		expect: 'volatile figure',
 	},
 	{
+		// §3's rule index has to keep its home. The markers are the only thing
+		// making the block a block; without them adr-graph writes nowhere and the
+		// section silently reverts to prose — the state it was in when the map went
+		// missing in the first place.
+		gate: 'config-traps: the AGENTS.md rule-index markers must exist',
+		files: {},
+		cmd: restoreProbe('AGENTS.md', 's/<!-- rules:start -->/<!-- REMOVED -->/'),
+		expect: 'rules:start',
+	},
+	{
+		gate: 'adr-graph: a hand-edited rule index is stale',
+		files: {},
+		cmd: restoreProbe(
+			'AGENTS.md',
+			's/no-circular/no-circular-HAND-EDITED/',
+			'node scripts/adr-graph.mjs --check',
+		),
+		expect: 'is stale',
+	},
+	{
+		// The index reads scripts/gate.mjs by TEXT (importing it runs the gate), so
+		// a formatting change there could quietly halve the map. It fails instead.
+		gate: 'adr-graph: gate.mjs rules the index cannot read fail loudly',
+		files: {},
+		cmd: restoreProbe(
+			'scripts/gate.mjs',
+			's/msg: .the reducer is pure/msgRENAMED: .the reducer is pure/',
+			'node scripts/adr-graph.mjs --validate',
+		),
+		expect: 'the rule index cannot read the gate',
+	},
+	{
+		// `gate:<id>` is the third enforcement kind, added with the rule index —
+		// the prototype gate's 16 rules were previously unnameable from an ADR.
+		// Proves the kind RESOLVES; the dead-reference case is covered above.
+		gate: 'adr-graph: an ADR may claim a prototype-gate rule (negative control)',
+		files: {},
+		cmd: `printf '# ADR-${NEXT_ADR} — Planted\\n\\n> **Kind:** decision · **Status:** accepted · **Updated:** x\\n> **Level:** 4 — mechanism\\n> **Constrained by:** 0001\\n> **Enforced by:** gate:seam-leak\\n> **Scope:** planted.\\n' > docs/decisions/${NEXT_ADR}-probe.md; node scripts/adr-graph.mjs --validate; rc=$?; rm -f docs/decisions/${NEXT_ADR}-probe.md; exit $rc`,
+		expectClean: true,
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.

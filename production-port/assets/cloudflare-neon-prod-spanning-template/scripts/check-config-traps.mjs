@@ -50,7 +50,7 @@ if (
 {
 	const src = read('AGENTS.md')
 	if (src) {
-		for (const m of ['stack-index', 'divergences'])
+		for (const m of ['stack-index', 'divergences', 'rules'])
 			if (!src.includes(`<!-- ${m}:start -->`))
 				problems.push(
 					`AGENTS.md: no <!-- ${m}:start --> marker — its generator has nowhere to write (export-stack.mjs / adr-graph.mjs)`,

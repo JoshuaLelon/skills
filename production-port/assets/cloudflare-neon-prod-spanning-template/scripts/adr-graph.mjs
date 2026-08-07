@@ -15,6 +15,8 @@
 //      earns an exit code only after it catches drift a human confirms mattered.
 //      An earlier check-levels inferred edges and produced 79 false positives;
 //      this one reads declared edges, so there is nothing to guess.
+//   4. GENERATE  AGENTS.md §2 (divergences) and §3 (the rule index) — see the
+//      catalog below for why the index is derived rather than written.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -99,19 +101,75 @@ const UPPER = [
 	['docs/design/object-model.md', 'L2 — behaviour'],
 ]
 
-// -- resolve enforcement ids -------------------------------------------------
-const astRules = new Set()
+const problems = []
+
+// -- the rule catalog --------------------------------------------------------
+// Three sources, one list, each rule carrying its OWN words — ast-grep's
+// `message:`, dependency-cruiser's `comment:`, gate.mjs's `msg:`. Nothing here
+// is re-authored: the index says what the rule says, so it cannot describe a
+// check that has since changed (it did, in the hand-written table this
+// replaces). The third source is the reason this exists at all — gate.mjs's
+// rules appeared in NO document and nothing could see them.
+const norm = (id) => id.replace(/-(ts|tsx)$/, '')
+
+// A folded YAML scalar (`message: >-`) or a plain one, unwrapped to a line.
+const yamlScalar = (text, key) => {
+	const m = text.match(
+		new RegExp(`^${key}:[ \\t]*(?:([>|][-+]?)[ \\t]*\\n?)?(.*(?:\\n .*)*)$`, 'm'),
+	)
+	if (!m) return null
+	const out = m[2]
+		.split('\n')
+		.map((l) => l.trim())
+		.filter(Boolean)
+		.join(' ')
+	// Unquote a quoted plain scalar — but only when the quotes WRAP the value.
+	// Stripping either end unconditionally ate the leading quote of
+	// one-door-model's "'@anthropic-ai/sdk' is imported only by…".
+	return /^(['"]).*\1$/s.test(out) ? out.slice(1, -1) : out
+}
+
+const astRules = new Map()
 if (existsSync(join(ROOT, 'ast-grep/rules'))) {
-	for (const f of readdirSync(join(ROOT, 'ast-grep/rules'))) {
-		const id = readFileSync(join(ROOT, 'ast-grep/rules', f), 'utf8').match(/^id:\s*(.+)$/m)?.[1]
-		if (id) astRules.add(id.trim().replace(/-(ts|tsx)$/, ''))
+	for (const f of readdirSync(join(ROOT, 'ast-grep/rules')).sort()) {
+		const text = readFileSync(join(ROOT, 'ast-grep/rules', f), 'utf8')
+		const id = text.match(/^id:\s*(.+)$/m)?.[1]?.trim()
+		if (!id) continue
+		// Twins (-ts/-tsx) are one rule in two grammars. The unsuffixed file wins
+		// when both are present, so the index is stable whatever order the
+		// directory is read in.
+		if (!astRules.has(norm(id)) || id === norm(id))
+			astRules.set(norm(id), yamlScalar(text, 'message') ?? '')
 	}
 }
-const cruiserRules = new Set()
+
+const cruiserRules = new Map()
 const cruiserPath = join(ROOT, '.dependency-cruiser.cjs')
 if (existsSync(cruiserPath))
+	// Only severity: error. A warn is a report, not a gate, and an index that
+	// listed both would claim enforcement the build does not perform.
 	for (const r of createRequire(import.meta.url)(cruiserPath).forbidden ?? [])
-		if (r.severity === 'error') cruiserRules.add(r.name)
+		if (r.severity === 'error') cruiserRules.set(r.name, r.comment ?? '')
+
+// gate.mjs is READ, not imported: importing it runs the gate (it walks the tree
+// and may exit). Ids and messages are paired positionally — every rule object
+// declares `id` before `msg` — and a count mismatch is a hard failure rather
+// than a short index, because a silently-truncated map is the failure mode this
+// whole file exists to prevent.
+const gateRules = new Map()
+{
+	const p = join(ROOT, 'scripts/gate.mjs')
+	if (existsSync(p)) {
+		const src = readFileSync(p, 'utf8')
+		const ids = [...src.matchAll(/\bid:\s*(['"])(.+?)\1/g)].map((m) => m[2])
+		const msgs = [...src.matchAll(/\bmsg:\s*(['"])(.+?)\1/g)].map((m) => m[2])
+		if (!ids.length || ids.length !== msgs.length)
+			problems.push(
+				`scripts/gate.mjs: read ${ids.length} rule id(s) but ${msgs.length} message(s) — the rule index cannot read the gate, and a short index is worse than none. Keep each rule's \`id:\` and \`msg:\` as single-quoted single-line fields.`,
+			)
+		else for (const [i, id] of ids.entries()) gateRules.set(id, msgs[i])
+	}
+}
 
 const pkgScripts = new Set(
 	Object.keys(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}),
@@ -120,8 +178,9 @@ const pkgScripts = new Set(
 const resolves = (ref) => {
 	const [kind, ...rest] = ref.split(':')
 	const id = rest.join(':')
-	if (kind === 'ast-grep') return astRules.has(id.replace(/-(ts|tsx)$/, ''))
+	if (kind === 'ast-grep') return astRules.has(norm(id))
 	if (kind === 'depcruise') return cruiserRules.has(id)
+	if (kind === 'gate') return gateRules.has(id)
 	// A repo script may be an npm entry or a file in scripts/ — db-push-guard is
 	// the latter, invoked by another script rather than named in package.json.
 	if (kind === 'script') return pkgScripts.has(id) || existsSync(join(ROOT, `scripts/${id}.mjs`))
@@ -129,7 +188,6 @@ const resolves = (ref) => {
 }
 
 // -- validate (GATE) ---------------------------------------------------------
-const problems = []
 const nums = adrs.map((a) => Number(a.n))
 for (let i = 1; i < nums.length; i++) {
 	if (nums[i] === nums[i - 1]) problems.push(`duplicate ADR number ${adrs[i].n}`)
@@ -198,9 +256,21 @@ const claimed = new Set(
 	adrs.flatMap((a) => a.enforcedBy.map((e) => e.split(':').slice(1).join(':'))),
 )
 const unclaimed = [
-	...[...astRules].filter((r) => !claimed.has(r)).map((r) => `ast-grep:${r}`),
-	...[...cruiserRules].filter((r) => !claimed.has(r)).map((r) => `depcruise:${r}`),
+	...[...astRules.keys()].filter((r) => !claimed.has(r)).map((r) => `ast-grep:${r}`),
+	...[...cruiserRules.keys()].filter((r) => !claimed.has(r)).map((r) => `depcruise:${r}`),
 ].sort()
+
+// Reverse of `Enforced by:` — which ADR claims each rule. The forward direction
+// is already a gate (an ADR naming a rule that does not exist fails); this is
+// the same edge read the other way, so the index cannot credit an ADR that
+// never claimed the rule.
+const claimants = new Map()
+for (const a of adrs)
+	for (const e of a.enforcedBy) {
+		const [kind, ...rest] = e.split(':')
+		const key = `${kind}:${kind === 'ast-grep' ? norm(rest.join(':')) : rest.join(':')}`
+		claimants.set(key, [...(claimants.get(key) ?? []), a.n])
+	}
 
 // -- generate ----------------------------------------------------------------
 const axes = [...new Set(adrs.flatMap((a) => [...a.axes]))].sort()
@@ -303,12 +373,66 @@ const divergenceBlock = () => {
 		: '*No divergences yet — this app still runs the seed decisions as accepted.*'
 }
 
+// -- AGENTS.md §3, derived ----------------------------------------------------
+// The map an agent reads BEFORE writing code: every rule that can fail a build,
+// in the rule's own words, with the ADR that claims it. §3 was this table by
+// hand once and drifted — three rules missing, every script gate missing, one
+// row describing a check that had changed — so it was deleted and the reasoning
+// left where each rule fires. That was right about the copy and wrong about the
+// map: nothing then answered "what does this repo enforce". Generated, it
+// cannot drift; the rule's full message still prints at the moment you break it.
+const summarize = (msg) => {
+	const t = msg.replace(/\s+/g, ' ').trim()
+	// The rule author's first sentence, unless it is too short to say anything
+	// on its own ("Role/name locators only.") — then keep going.
+	for (const m of t.matchAll(/\.\s/g)) if (m.index >= 40) return t.slice(0, m.index + 1)
+	return t
+}
+const cell = (s) => s.replaceAll('|', '\\|')
+
+const rulesBlock = () => {
+	const rows = [
+		...[...astRules].map(([id, m]) => ['ast-grep', id, m]),
+		...[...cruiserRules].map(([id, m]) => ['depcruise', id, m]),
+		...[...gateRules].map(([id, m]) => ['gate', id, m]),
+	]
+	const counts = ['ast-grep', 'depcruise', 'gate']
+		.map((t) => `${rows.filter((r) => r[0] === t).length} ${t}`)
+		.join(', ')
+	return [
+		'Generated by adr-graph.mjs from the rules themselves — do not hand-edit.',
+		`${rows.length} rules that FAIL a build: ${counts}. dependency-cruiser's`,
+		'`warn` entries are reports, not gates, and are not listed. Each row is the',
+		"rule's own message, shortened; the whole of it prints when the rule fires.",
+		'',
+		'| rule | forbids | tool | claimed by |',
+		'| --- | --- | --- | --- |',
+		...rows.map(
+			([tool, id, msg]) =>
+				`| \`${id}\` | ${cell(summarize(msg))} | ${tool} | ${(claimants.get(`${tool}:${id}`) ?? []).map((n) => `ADR-${n}`).join(', ') || '—'} |`,
+		),
+	].join('\n')
+}
+
 const AGENTS = 'AGENTS.md'
 let agentsOut = null
-if (existsSync(join(ROOT, AGENTS))) {
-	const cur = readFileSync(join(ROOT, AGENTS), 'utf8')
-	const re = /(<!-- divergences:start -->)[\s\S]*?(<!-- divergences:end -->)/
-	if (re.test(cur)) agentsOut = cur.replace(re, `$1\n${divergenceBlock()}\n$2`)
+{
+	const blocks = [
+		['divergences', divergenceBlock],
+		['rules', rulesBlock],
+	]
+	if (existsSync(join(ROOT, AGENTS))) {
+		let cur = readFileSync(join(ROOT, AGENTS), 'utf8')
+		for (const [name, build] of blocks) {
+			const re = new RegExp(`(<!-- ${name}:start -->)[\\s\\S]*?(<!-- ${name}:end -->)`)
+			// A missing marker is not this script's failure to report: config-traps
+			// asserts every marker exists, so a block with no home is caught there
+			// rather than half-written here.
+			if (!re.test(cur)) continue
+			cur = cur.replace(re, `$1\n${build()}\n$2`)
+			agentsOut = cur
+		}
+	}
 }
 
 // -- emit --------------------------------------------------------------------
@@ -334,12 +458,16 @@ if (VALIDATE) {
 		process.exit(1)
 	}
 	if (agentsOut && agentsOut !== readFileSync(join(ROOT, AGENTS), 'utf8')) {
-		console.error(`adr-graph: ${AGENTS} §2 divergences is stale — run: node scripts/adr-graph.mjs`)
+		console.error(
+			`adr-graph: ${AGENTS} is stale (§2 divergences / §3 rule index) — run: node scripts/adr-graph.mjs`,
+		)
 		process.exit(1)
 	}
 	console.log('adr-graph: OK')
 } else {
 	writeFileSync(join(ROOT, OUT), generated)
 	if (agentsOut) writeFileSync(join(ROOT, AGENTS), agentsOut)
-	console.log(`adr-graph: wrote ${OUT}${agentsOut ? ` and ${AGENTS} §2` : ''}`)
+	console.log(
+		`adr-graph: wrote ${OUT}${agentsOut ? ` and ${AGENTS} §2–§3 (${astRules.size + cruiserRules.size + gateRules.size} rules indexed)` : ''}`,
+	)
 }

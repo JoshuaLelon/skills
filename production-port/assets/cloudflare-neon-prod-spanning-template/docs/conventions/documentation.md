@@ -86,7 +86,8 @@ with more than it catches is worse than no rule:
 | status block present; Kind matches folder; Level present | docs-check |
 | design docs carry a falsifiable Built line | docs-check |
 | [FILL:] markers worked down over time | docs:fillins — a REPORT, by design |
-| generated docs (llms.txt, adr-graph.md) match their sources | docs-index --check, adr-graph --check |
+| generated docs (llms.txt, adr-graph.md, AGENTS.md §2–§3) match their sources | docs-index --check, adr-graph --check |
+| the generated blocks keep their home in AGENTS.md | check-config-traps — a missing marker is a generator writing nowhere |
 | ADR edges and enforcement ids resolve | adr-graph (numbering, cycles, missing rules) |
 | no price or dated deadline inside an immutable ADR | docs-check — it belongs in `reference/`, which can be corrected |
 | prose that RESTS on another doc is re-read when that doc moves | docs:tracks — a GATE in `npm run check` (`--check`), a report in pre-commit. `Tracks: path@blob`; `docs:bless -- <adr>` records "I looked", scoped. It proves a human looked, never that the prose is right — but an unread dependency no longer ships green |
