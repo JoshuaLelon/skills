@@ -212,6 +212,20 @@ and the per-screen accessor→loader swap (same signatures; ADR-0012).
   that inherits it. Its numbers are dated — re-verify before committing, and
   correct them there: a price belongs in `reference/`, which can be edited, not
   in an ADR, which cannot (`docs-check` refuses one).
+- **Debugging the running app — use Local Explorer, not `console.log`
+  archaeology.** `npm run dev` already captures an OpenTelemetry trace and the
+  correlated `console.*` output for every local invocation, with no code change
+  and nothing to install (it needs wrangler ≥ 4.118.0 or `@cloudflare/vite-plugin`
+  ≥ 1.50.0; the template pins exactly those). Open
+  `http://localhost:5273/cdn-cgi/explorer`, or drive it directly:
+  `curl http://localhost:5273/cdn-cgi/explorer/api` returns an OpenAPI schema, and
+  `POST /cdn-cgi/explorer/api/local/observability/query` takes **SQL over the
+  captured traces and logs** — which is how you read back the ADR-0009 wide
+  events before anything is deployed. The same API reads and writes binding
+  state (KV, R2, D1, DO SQLite, Workflows), so seeding a fixture or inspecting a
+  Durable Object does not need a throwaway route. Prefer this over adding a
+  temporary log line and removing it later; details in the app's own
+  `docs/reference/cloudflare-primitives.md`.
 - **Neon operations**: the `mcp__Neon__*` tools do branches
   (`create_branch`, `reset_from_parent`), connection strings, slow queries
   (`list_slow_queries`), and SQL directly — use them instead of hand-running

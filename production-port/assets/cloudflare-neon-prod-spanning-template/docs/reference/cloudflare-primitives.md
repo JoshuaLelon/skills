@@ -376,6 +376,36 @@ arrives at your provider unparented. Span/attribute names are still unstable.
 **not accessible inside the Worker at runtime**, so `console.log(err.stack)`
 still prints minified frames. Max 15 MB gzipped.
 
+### Local Explorer — *available now, unused*
+The same trace/log capture, **locally, before deploying**. `wrangler dev` and
+`vite dev` record OpenTelemetry spans and correlated `console.*` output for every
+local invocation with no code change, and serve them at `/cdn-cgi/explorer`.
+
+- **Reach for it:** the debug loop this repo's whole doctrine assumes — read the
+  failing span, fix, rerun, verify, without a deploy and without adding
+  temporary logging that then has to come back out. It is also the only place
+  the ADR-0009 wide event can be *queried* before production: the flat JSON
+  objects `lib/log.ts` emits come back as rows.
+- **Don't:** treat it as parity with deployed traces — it measures a local
+  workerd, so timings are your laptop's, not a colo's; and it is dev-only, so
+  nothing here replaces the wrangler.jsonc `observability` block.
+- **Numbers:** needs **wrangler ≥ 4.118.0** *or* **`@cloudflare/vite-plugin`
+  ≥ 1.50.0**. This template pins **exactly 4.118.0 and 1.50.0**, so it is already
+  available — nothing to install. Free; local only.
+- **Reaching it here:** `npm run dev` is `react-router dev` through the vite
+  plugin (never `wrangler dev`), so the wrangler "press `e`" path does not
+  apply — open **`http://localhost:5273/cdn-cgi/explorer`** (the port
+  `vite.config.ts` pins with `strictPort`).
+- **For an agent:** `/cdn-cgi/explorer/api` serves an OpenAPI schema
+  (`curl http://localhost:5273/cdn-cgi/explorer/api`), and
+  `POST /cdn-cgi/explorer/api/local/observability/query` takes SQL over the
+  captured traces and logs. Binding state (KV, R2, D1, DO SQLite, Workflows) is
+  readable and writable through the same API — seed a fixture, inspect a DO,
+  retry a Workflow. Wrangler prints a hint pointing here when it detects an
+  agent session.
+- [Local Explorer](https://developers.cloudflare.com/workers/local-development/local-explorer/) ·
+  [Announcement](https://developers.cloudflare.com/changelog/post/2026-08-04-local-tracing/)
+
 - [Observability](https://developers.cloudflare.com/workers/observability/) ·
   [Traces](https://developers.cloudflare.com/workers/observability/traces/) ·
   [Exporting OTel](https://developers.cloudflare.com/workers/observability/exporting-opentelemetry-data/)
