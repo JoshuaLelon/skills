@@ -31,6 +31,19 @@ if (
 	)
 }
 
+// 1b. Playwright must never adopt a stray dev server. `reuseExistingServer`
+// truthy means "if something is on this port, test that" — and 5173 is the Vite
+// default, so it is routinely another project. The suite then grades the wrong
+// app and reports its failures as yours.
+{
+	const f = 'playwright.config.ts'
+	const src = read(f)
+	if (src && !/reuseExistingServer:\s*false/.test(src))
+		problems.push(
+			`${f}: reuseExistingServer must be literal false — otherwise e2e silently grades whatever already listens on the port (5173 is the Vite default; it is usually another project)`,
+		)
+}
+
 // 2. jsdom is over — component tests run in real Chromium; jsdom silently
 // lacks real APIs and passes tests the browser would fail.
 for (const f of readdirSync(ROOT).filter((f) => /^vitest\.config\./.test(f))) {

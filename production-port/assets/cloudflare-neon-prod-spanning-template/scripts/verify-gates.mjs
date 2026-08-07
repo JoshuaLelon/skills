@@ -152,6 +152,16 @@ const MUTATIONS = [
 		expect: 'thresholds',
 	},
 	{
+		gate: 'config-traps: playwright reuseExistingServer must be false',
+		files: {
+			'playwright.config.ts.trap-mut': '',
+		},
+		// Rewrite the real config in a scratch copy: the trap reads the committed
+		// file, so the mutation has to move it aside and restore it.
+		cmd: 'cp playwright.config.ts /tmp/pw.bak && sed -i.x "s/reuseExistingServer: false/reuseExistingServer: !process.env.CI/" playwright.config.ts && node scripts/check-config-traps.mjs; rc=$?; cp /tmp/pw.bak playwright.config.ts; rm -f playwright.config.ts.x /tmp/pw.bak; exit $rc',
+		expect: 'reuseExistingServer must be literal false',
+	},
+	{
 		gate: 'docs-check: ADR citation resolves',
 		// The bogus number is concatenated so this fixture is not itself a
 		// citation — docs-check scans .mjs, and caught exactly that.
