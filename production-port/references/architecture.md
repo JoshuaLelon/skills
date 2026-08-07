@@ -11,7 +11,7 @@ row; never by drifting.
 | decision | exists because of | and is what makes … work |
 | --- | --- | --- |
 | owner on every row (0010) | per-user product model (0004-style) | test isolation without resets; `fullyParallel` as the isolation regression test (0006) |
-| `(owner, ref)` composite keys, `ref` = `type:kebab-slug` (0010) | the prototype's id discipline (fixture rule 4) | fixture rows → seed rows 1:1 |
+| `(owner, ref)` composite keys, `ref` = `type:kebab-slug` (0010) | the prototype's id discipline (fixture rule 4) | fixture rows → seed rows with no reshaping: same keys, same instants, `owner` supplied |
 | `now` as an argument (0005) | replay equality in the store (0007) | flow-test clock pinning; `ORDER BY at` stability |
 | effects as data + one host (0007) | the port must be a copy | replay equality; the dev invariants; strip-harness knowing where everything lives |
 | loaders as the seam (0003) | accessors in the prototype | mock→Postgres swap with no screen changes; per-route error boundaries (0008) |
@@ -66,6 +66,17 @@ together, don't.** The pre-drawn set, each with its teeth:
 | transaction ↔ use case | one `db.transaction` around the operation, queries take the handle | convention |
 | config ↔ code | composition root (`env.server.ts` + worker entry) reads once, passes in | convention; `.dev.vars.example` manifest check |
 | raw-SQL escape hatch | allowed, localized beside its query module | review |
+| fixture time ↔ live clock | fixture entities hold absolute instants anchored on `NOW` (`fixtures/clock.ts`); `rebase()` in `src/db/seed.ts` is the one site that converts them onto the seeder's `now` | `no-unrebased-fixture-timestamp` gate + verify:gates + `seed.test.ts` |
+
+The last row is the seam that was missing rather than declined, and its absence
+was expensive: the prototype rendered absolute dates, the seeder wanted offsets,
+and with nothing owning the conversion each port hand-wrote a `rebase()` of its
+own. Both representations were right — they are the same information, and the
+prototype has N read sites where the seeder has one write site, which is what
+decides who converts. `owner` is the field that genuinely does NOT cross:
+production owner is the uuid FK the seeder is handed (ADR-0010), so `seedFixture`
+lists columns explicitly and names the discard instead of letting a spread
+perform it by key order.
 
 **Deliberately not drawn** (each has a stated reason in ADR-0012): repository
 interfaces + in-memory fakes (tests run on real Postgres, owner-scoped — the

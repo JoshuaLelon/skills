@@ -186,7 +186,10 @@ port: next, the mapping loop (one feature at a time):
 Then delete what the port SUPERSEDES — knip will name these, and they are dead
 by design, not by accident:
   - src/fixtures/accessors.ts   (queries.server.ts is the production accessor)
-  - src/fixtures/clock.ts       helpers  (the seeder takes now as an argument)
   - the ACTIONS array           (it becomes a table; wire it into the seeder)
+src/fixtures/clock.ts STAYS — it is not superseded. Entity files keep holding
+instants anchored on NOW, and seed.ts's rebase() converts them onto the seeder's
+now, so a carried entity file compiles and seeds unedited. Helpers no entity
+uses are tagged @public, not dead.
 
 Check progress: node scripts/port-from-prototype.mjs --status`)

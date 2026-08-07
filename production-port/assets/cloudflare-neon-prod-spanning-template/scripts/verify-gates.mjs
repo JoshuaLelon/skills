@@ -138,6 +138,31 @@ const MUTATIONS = [
 		expect: 'no-date-now-in-domain',
 	},
 	{
+		// The planted violation is the exact regression: copy the fixture's anchored
+		// instant into the row instead of rebasing it. Nothing else in the repo can
+		// see this one — the flow tests and the integration tier assert ordering and
+		// shape, both of which survive it.
+		gate: 'ast-grep: no-unrebased-fixture-timestamp',
+		files: {
+			'src/db/__mut__.ts':
+				'declare const n: { createdAt: string }\nexport const at = new Date(n.createdAt)\n',
+		},
+		cmd: 'npx ast-grep scan src/db/__mut__.ts',
+		expect: 'no-unrebased-fixture-timestamp',
+	},
+	{
+		// The pair, because this rule can fail CLOSED as easily as open: it bans a
+		// constructor that the one legitimate call site also uses. A positive
+		// mutation alone cannot tell "bans un-rebased dates" from "bans dates".
+		gate: 'ast-grep: a rebased timestamp is not flagged (negative control)',
+		files: {
+			'src/db/__mut2__.ts':
+				'declare const now: Date\nexport const at = new Date(now.getTime() + 1000)\n',
+		},
+		cmd: 'npx ast-grep scan src/db/__mut2__.ts',
+		expectClean: true,
+	},
+	{
 		gate: 'ast-grep: no-testid-locator',
 		files: {
 			'e2e/__mut__.spec.ts':

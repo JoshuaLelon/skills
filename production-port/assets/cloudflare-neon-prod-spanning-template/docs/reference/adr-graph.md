@@ -85,7 +85,7 @@ alongside it; these edges are why an untouched file is not the last word.
 | ADR-0002 | `script:db-push-guard` |
 | ADR-0003 | `ast-grep:no-remix-imports`, `ast-grep:no-app-load-context`, `ast-grep:no-react-legacy` |
 | ADR-0004 | `depcruise:no-bcrypt` |
-| ADR-0005 | `ast-grep:no-date-now-in-domain` |
+| ADR-0005 | `ast-grep:no-date-now-in-domain`, `ast-grep:no-unrebased-fixture-timestamp` |
 | ADR-0006 | `ast-grep:no-testid-locator`, `depcruise:no-test-in-prod` |
 | ADR-0007 | `depcruise:store-is-pure`, `ast-grep:no-inline-promise-in-use` |
 | ADR-0008 | *judgement* |

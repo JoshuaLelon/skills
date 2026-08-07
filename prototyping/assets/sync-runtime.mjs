@@ -32,6 +32,11 @@ const MANAGED = [
 	['template/src/states.tsx', 'src/states.tsx'],
 	['gate.mjs', 'scripts/gate.mjs'],
 	['strip-harness.mjs', 'scripts/strip-harness.mjs'],
+	// clock.ts is byte-identical with the production template's copy
+	// (check-parity.mjs) — an app editing it breaks the port it is preparing for.
+	// It was in neither list while it was prototype-only, so a fix to it reached
+	// no existing app; now that it crosses, drift here is a defect, not news.
+	['template/src/fixtures/clock.ts', 'src/fixtures/clock.ts'],
 ]
 
 // WATCHED — reported, never written. The app is EXPECTED to diverge here:

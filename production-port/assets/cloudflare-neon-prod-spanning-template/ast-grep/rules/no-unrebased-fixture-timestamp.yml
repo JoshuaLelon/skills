@@ -1,0 +1,32 @@
+# No Tsx twin: src/db/** is server code and holds no components. If a .tsx file
+# ever lands there, write the twin — the grammars are mutually exclusive
+# (sgconfig.yml).
+#
+# The regression this exists to catch is invisible to every other check. A
+# fixture holds instants anchored on NOW; the seeder must rebase them onto its
+# `now`. Write `new Date(n.createdAt)` instead and every seeded row is pinned to
+# the anchor year forever — while the flow tests, the integration tier and the
+# schema-drift check all stay green, because they assert ordering and shape, not
+# absolute values. It fails silently, in production, a year later.
+id: no-unrebased-fixture-timestamp
+language: TypeScript
+severity: error
+message: >-
+  Fixture timestamps are anchored on NOW; a row reaching the database must be
+  rebased onto the seeder's `now` — `new Date(now.getTime() + …)`, which is what
+  rebase() in src/db/seed.ts does. Constructing a Date from anything else here
+  hardcodes the anchor year into the seed. (ADR-0005)
+files:
+  - "src/db/**"
+# The invariant is about rows REACHING the database. A test file writes no rows;
+# it has to mint arbitrary instants to have anything to rebase, and seed.test.ts
+# minting four of them is the rule working, not four violations. Caught by the
+# rule firing on its own test — the positive mutation still plants a non-test
+# file in src/db/, which is what proves the narrowing did not empty the glob.
+ignores:
+  - "src/db/**/*.test.ts"
+rule:
+  all:
+    - pattern: new Date($ARG)
+    - not:
+        pattern: new Date(now.getTime() + $DELTA)

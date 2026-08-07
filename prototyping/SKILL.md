@@ -165,7 +165,9 @@ src/
   fixtures/
     now.ts          ◆ the one frozen instant every timestamp derives from
     clock.ts        ◆ daysBefore/hoursBefore(n) — the cheap path to a derived
-                    #   timestamp, since the gate bans `new Date(` in entities/
+                    #   timestamp, since the gate bans `new Date(` in entities/.
+                    #   BYTE-IDENTICAL to production's; it ports, and the seeder
+                    #   rebases what it mints
     entities/       # becomes tables — sources.ts exports SOURCES, …
     script/         # walkthrough screenplay; notes.ts ◆ — becomes nothing
     view/           # chip lists, colour tokens — becomes nothing
@@ -343,16 +345,27 @@ The payoff: entity arrays become seed rows, interfaces are already DTOs, and
 `sourceOf(id)` becomes the loader's query function with the **same signature** — so
 no screen changes when the data starts coming from Postgres.
 
-**Two fields do NOT cross 1-1, measured on a real port** — the mapping is
-mechanical but not the identity:
-- **Timestamps.** Fixtures hold absolute ISO strings anchored on the frozen
-  `NOW`; the production seeder's contract is `seedFixture(db, owner, now)` with
-  offsets RELATIVE to a passed-in now, because a seed that hardcodes 2026 is
-  wrong the moment it runs in 2027. Expect to rebase them.
-- **`owner`.** The fixture's `owner: 'owner:jlm'` is discarded: production owner
-  is a uuid FK to `users`, supplied by the seeder's parameter (ADR-0010). Keep
-  the field — it is what makes owner-scoping visible in the prototype — and know
-  it does not travel.
+**Timestamps cross unedited; `owner` does not cross at all.** Both were measured
+on a real port, and only one of them was ever a real mismatch:
+
+- **Timestamps — carried, not converted.** Keep holding absolute ISO anchored on
+  `NOW` through `clock.ts` (`daysBefore(90)`). The production seeder's contract
+  is still `seedFixture(db, owner, now)` with everything relative to that `now` —
+  a seed that hardcodes 2026 is wrong the moment it runs in 2027 — but the
+  conversion is `rebase()` in the template's `src/db/seed.ts`, which shifts your
+  anchored instants onto the seeder's clock. A row two days old against `NOW` is
+  two days old whenever the seeder runs. **Do not hand-write a rebase: one
+  already ships, tested, and a gate stops anything bypassing it.** `clock.ts` is
+  byte-identical across both skills for this reason (check-parity.mjs) — it is
+  not deleted at port time, and it used to be.
+- **`owner` — kept, and deliberately discarded.** The fixture's
+  `owner: 'owner:jlm'` is a display id; production owner is a uuid FK to `users`
+  supplied by the seeder's parameter (ADR-0010), so the value genuinely does not
+  travel. Keep the field — it is what makes owner-scoping visible while there is
+  no database, and fixture rule 6's payoff is schema shape, not reads. The
+  seeder lists columns explicitly and names the discard; if you ever see it
+  spread the fixture row instead, that is the discard happening by key ORDER and
+  a fixture string one reorder away from a `uuid` column.
 
 ### Store rules — logic that ports is logic that crossed unedited
 

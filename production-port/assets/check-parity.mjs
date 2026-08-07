@@ -19,6 +19,12 @@ const PAIRS = [
 	["prototyping/assets/template/src/components/text-input.tsx", "production-port/assets/cloudflare-neon-prod-spanning-template/src/components/text-input.tsx"],
 	["prototyping/assets/template/src/components/row.tsx", "production-port/assets/cloudflare-neon-prod-spanning-template/src/components/row.tsx"],
 	["prototyping/assets/template/src/fixtures/now.ts", "production-port/assets/cloudflare-neon-prod-spanning-template/src/fixtures/now.ts"],
+	// clock.ts joined this list when the seeder learned to rebase: entity files
+	// keep holding NOW-anchored instants after the port, so the vocabulary that
+	// mints them has to cross too. It was prototype-only for exactly as long as
+	// the production fixture spoke a different dialect (hand-written offsets),
+	// which is what made every port hand-write the conversion.
+	["prototyping/assets/template/src/fixtures/clock.ts", "production-port/assets/cloudflare-neon-prod-spanning-template/src/fixtures/clock.ts"],
 	["prototyping/assets/gate.mjs", "production-port/assets/cloudflare-neon-prod-spanning-template/scripts/gate.mjs"],
 ];
 

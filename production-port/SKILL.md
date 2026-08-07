@@ -109,10 +109,14 @@ there is no red-hooks transition to survive there. It does not cover the
 DIRECT-COPY set: fixtures and level docs land in their real homes immediately,
 because they continue rather than restart. The port script now formats what it
 carries and regenerates `llms.txt`, which removes the two mechanical failures.
-What remains is honest signal: knip will name `accessors.ts`, the `clock.ts`
-helpers and the ACTIONS array as dead, because after the port they ARE — the
-query module, the seeder's `now` argument and the actions table supersede them.
-Deleting them is a mapping step, not a workaround; the script prints the list.
+What remains is honest signal: knip will name `accessors.ts` and the ACTIONS
+array as dead, because after the port they ARE — the query module and the actions
+table supersede them. Deleting them is a mapping step, not a workaround; the
+script prints the list. **`clock.ts` is not on that list and used to be:** entity
+files keep holding instants anchored on `NOW` after the port, and `rebase()` in
+`src/db/seed.ts` converts them onto the seeder's `now`, so a carried entity file
+compiles and seeds unedited. Helpers no entity happens to use are `@public`, not
+dead — the file is a palette.
 
 **The mapping loop**, one prototype feature at a time, each onto the
 exemplar's worked pattern: fixture interfaces → schema (the notes table shows
@@ -199,6 +203,17 @@ and the per-screen accessor→loader swap (same signatures; ADR-0012).
 - **One seeder, shared.** Tests and production onboarding call the same
   `seedFixture(db, owner, now)` — `now` a required parameter, everything
   relative to it. Two seeders drift; this one can't.
+- **The fixture's instants are rebased, not copied.** Entity files hold absolute
+  times anchored on `NOW` because a prototype has to render a believable date;
+  rows have to be relative to a live clock or a seed authored this year is wrong
+  next year. `rebase()` in `seed.ts` is the single conversion, gated by
+  `no-unrebased-fixture-timestamp` — the regression it catches (copy the instant
+  through, pin every row to the anchor year) leaves flow tests, the integration
+  tier and schema-drift all green, because they assert ordering and shape.
+- **`seedFixture` lists columns, never spreads the fixture row.** `owner` is the
+  one field that does not cross — production's is the uuid FK the seeder is
+  handed (ADR-0010) — and a spread discards it by key ORDER, which is a decision
+  nobody wrote down. Extend the list per entity; the notes table is the example.
 - **`generate` + `migrate` from the first schema.** `push` is local-scratch
   only, enforced by `scripts/db-push-guard.mjs` (`npm run db:push`) — born from
   a real incident where push against a branch with rows produced an interactive
