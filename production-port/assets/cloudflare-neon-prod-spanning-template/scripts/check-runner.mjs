@@ -46,6 +46,18 @@ const CHECKS = [
 // asserts each one still fires. That is slow and pointless on every local save,
 // but it is exactly what you want before a merge.
 const CI_SKIP = new Set(['test:int', 'e2e'])
+
+// The one-command fix, where one exists. Printed with the failure, because the
+// tool's own output does not always name it: biome marks findings FIXABLE and
+// shows the exact diff, and never says `lint:fix`.
+const REMEDY = {
+	lint: 'npm run lint:fix',
+	'docs:check':
+		'npm run docs:generate   (then re-read anything docs-tracks names, and `npm run docs:bless -- <adr>`)',
+	'types:check': 'npm run types',
+	'check:schema-drift':
+		'npx drizzle-kit generate   (answer its prompt; a pty works if you are not a human)',
+}
 const CI_EXTRA = ['verify:gates']
 const ALL = [...CHECKS, ...CI_EXTRA]
 
@@ -142,6 +154,10 @@ if (failed.length) {
 		for (const l of picked) console.log(`      ${l}`)
 		if (total > picked.length)
 			console.log(`      … ${total - picked.length} more line(s) — full output below, or --verbose`)
+		// A failure that does not name its own remedy is a puzzle. Some tools print
+		// the fix; biome prints "FIXABLE" and a character-level diff but never the
+		// command, which agents in two separate labs then hand-edited around.
+		if (REMEDY[r.name]) console.log(`      → fix: ${REMEDY[r.name]}`)
 		console.log('')
 	}
 }
