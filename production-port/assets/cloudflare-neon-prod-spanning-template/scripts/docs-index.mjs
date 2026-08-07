@@ -42,6 +42,39 @@ function* mdFiles(dir) {
 	}
 }
 
+// Partial supersessions, read from the `Supersedes:` edges. An ADR body is
+// immutable, so ADR-0009 still says "traces enabled while free" and ADR-0001
+// still claims an AI gateway that was never wired — corrections that could only
+// be filed as new peers. Annotating the SUPERSEDED entry here is what makes the
+// index tell the truth without editing the file: an agent reading llms.txt (the
+// entry point) sees the correction attached to the decision it corrects.
+const superseded = new Map()
+{
+	let names = []
+	try {
+		names = readdirSync(join(ROOT, 'docs/decisions'))
+	} catch {
+		/* no decisions dir */
+	}
+	for (const name of names) {
+		const n = name.match(/^(\d{4})-.+\.md$/)?.[1]
+		if (!n) continue
+		const raw = readFileSync(join(ROOT, 'docs/decisions', name), 'utf8')
+			.match(/\*\*Supersedes:\*\*\s*([^\n]+)/)?.[1]
+			?.trim()
+		if (!raw || raw === '—') continue
+		for (const ref of raw
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean)) {
+			const [target, topic] = ref.split('#')
+			if (!/^\d{4}$/.test(target)) continue
+			if (!superseded.has(target)) superseded.set(target, [])
+			superseded.get(target).push(topic ? `${topic} → ADR-${n}` : `→ ADR-${n}`)
+		}
+	}
+}
+
 // One line per doc: [name](path): scope note (from the status block's Scope
 // line, falling back to the first heading).
 function entry(p) {
@@ -54,8 +87,19 @@ function entry(p) {
 		.trim()
 	const title = text.match(/^#\s+(.+)$/m)?.[1] ?? basename(p)
 	const level = text.match(/\*\*Level:\*\*\s*(\d)/)?.[1]
-	const note = (scope ?? title).replace(/\s+/g, ' ')
-	return `- [${basename(p)}](${p})${level ? ` · **L${level}**` : ''}: ${note}`
+	// ADRs index by their TITLE — which is the choice made, stated so a reader can
+	// act on it — not by Scope. Scope was the only field that surfaced here, so it
+	// accreted cross-references until it was a hand-maintained adjacency list;
+	// half the seed then shared one boilerplate Scope and produced thirteen
+	// identical index lines. The edges live in adr-graph.md now, derived.
+	const isAdr = p.startsWith('docs/decisions/')
+	const note = ((isAdr ? title.replace(/^ADR-\d{4}\s*—\s*/, '') : scope) ?? title).replace(
+		/\s+/g,
+		' ',
+	)
+	const sup = superseded.get(basename(p).match(/^(\d{4})-/)?.[1])
+	const warn = sup ? ` · ⚠ **partially superseded** (${sup.join('; ')})` : ''
+	return `- [${basename(p)}](${p})${level ? ` · **L${level}**` : ''}${warn}: ${note}`
 }
 
 const generated = []
