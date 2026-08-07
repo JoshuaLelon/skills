@@ -36,10 +36,17 @@ npm install -D @react-router/dev
 cat > vite.config.ts <<'VITE'
 import { reactRouter } from '@react-router/dev/vite'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'node:path'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
+  // The `@` alias shadcn's registry components import (`@/lib/utils`). It must
+  // exist HERE as well as in tsconfig: tsconfig satisfies tsc and shadcn's
+  // preflight check, but only Vite resolves it at runtime — without this, the
+  // app compiles clean and dies in the browser the moment a registry component
+  // is added.
+  resolve: { alias: { '@': path.resolve('src') } },
 })
 VITE
 node -e '
@@ -78,15 +85,25 @@ npx playwright install chromium
 npm install tailwindcss @tailwindcss/vite
 node -e '
 const fs = require("fs");
-// vite.config.ts: tailwind plugin + @ alias
+// vite.config.ts: tailwind plugin and the @ alias, checked INDEPENDENTLY.
+// They used to share one `if (!includes("@tailwindcss/vite"))` guard, which the
+// heredoc above always falsified — so the alias was silently never written and
+// the app died in the browser on the first registry import. Two requirements,
+// two conditions.
 let v = fs.readFileSync("vite.config.ts", "utf8");
+const before = v;
 if (!v.includes("@tailwindcss/vite")) {
-  v = "import tailwindcss from \x27@tailwindcss/vite\x27\nimport path from \x27node:path\x27\n" + v;
+  v = "import tailwindcss from \x27@tailwindcss/vite\x27\n" + v;
   v = v.replace(/plugins:\s*\[/, "plugins: [tailwindcss(), ");
-  v = v.replace(/(\}\)\s*)$/, "");
-  if (!v.includes("resolve:")) v = v.replace(/plugins: \[[^\]]*\],?/, (m) => m + "\n  resolve: { alias: { \x27@\x27: path.resolve(\x27src\x27) } },");
-  v += "})\n";
-  fs.writeFileSync("vite.config.ts", v);
+}
+if (!v.includes("resolve:")) {
+  if (!v.includes("node:path")) v = "import path from \x27node:path\x27\n" + v;
+  v = v.replace(/plugins:\s*\[[^\]]*\],?/, (m) => m + "\n  resolve: { alias: { \x27@\x27: path.resolve(\x27src\x27) } },");
+}
+if (v !== before) fs.writeFileSync("vite.config.ts", v);
+if (!fs.readFileSync("vite.config.ts", "utf8").includes("resolve:")) {
+  console.error("scaffold: FAILED to wire the @ alias into vite.config.ts");
+  process.exit(1);
 }
 // index.css: tailwind import at the top
 const css = fs.readFileSync("src/index.css", "utf8");
