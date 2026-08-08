@@ -6,15 +6,16 @@
 #
 # Installs: canonical layout, gate + pre-commit hook, Playwright (chromium,
 # webServer config), the store host with built-in dev invariants, the /__states
-# page, the walkthrough harness, and npm scripts. Overwrites src/main.tsx
-# deliberately (states route + StrictMode + Walkthrough). shadcn init stays a
+# page, the walkthrough harness, and npm scripts. DELETES Vite's src/main.tsx
+# deliberately: React Router owns the entry, so entry.client.tsx takes the
+# StrictMode half and routes.ts takes the /__states half. shadcn init stays a
 # separate step — it is interactive.
 set -e
 ASSETS="$(cd "$(dirname "$0")" && pwd)"
 
 [ -f package.json ] || { echo "scaffold: run from the app root (no package.json here)" >&2; exit 1; }
 
-mkdir -p src/fixtures/entities src/fixtures/script src/fixtures/view \
+mkdir -p src/fixtures/entities src/fixtures/script src/fixtures/view src/fixtures/model \
   src/store src/components src/screens e2e/flows scripts .githooks \
   docs/reference docs/design docs/plans
 
@@ -91,9 +92,14 @@ npm pkg set \
   scripts.build="react-router build" \
   scripts.gate="react-router typegen && node scripts/gate.mjs && tsc -b" \
   scripts.sync="node scripts/sync-runtime.mjs" \
-  scripts.check="npm run gate && playwright test --pass-with-no-tests" \
+  scripts.unit="vitest run" \
+  scripts.check="npm run gate && vitest run --passWithNoTests && playwright test --pass-with-no-tests" \
   scripts.e2e="playwright test"
 
+# Two test tiers. Vitest is node-only and runs nothing under e2e/ (see
+# vitest.config.ts); it is where the store's combinatorics get checked, and the
+# pre-commit hook runs it AHEAD of Playwright.
+npm install -D vitest
 npm install -D @playwright/test
 npx playwright install chromium
 
