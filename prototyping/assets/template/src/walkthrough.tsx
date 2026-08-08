@@ -8,6 +8,7 @@
 //   · absence     — the load-bearing thing that ISN'T there, marked HOLLOW on
 //                   the spot where it would be (every note has exactly one
 //                   marker; an absence has a location even when it has no thing)
+//   · at          — a note is offered only on the route its marker lives on
 //   · when        — notes hide until the state they describe is reachable
 // Wrap the app in <Walkthrough> and each referenced control in <Mark note="n1">.
 //
@@ -22,6 +23,7 @@
 // strip-harness.mjs.
 import { createContext, use, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { useLocation } from 'react-router'
 import { NOTES } from './fixtures/script/notes'
 import type { Note } from './fixtures/script/notes'
 import { useAppState } from './host'
@@ -40,6 +42,12 @@ const Ctx = createContext<Harness>({ active: null, absent: false, register: () =
 
 export function Walkthrough({ children }: { children: ReactNode }) {
   const s = useAppState()
+  // THE ROUTER, not a `screen` field in state. The router is what decides which
+  // screen is mounted, so it is the only thing that agrees with where the
+  // markers are. A state field is written by a handful of actions, and the nav
+  // rail and a typed URL move the router past all of them — which is precisely
+  // how a drawer comes to offer a Today note on another screen.
+  const { pathname } = useLocation()
   const [i, setI] = useState(0)
   const [flow, setFlow] = useState<string | null>(null)
   const [hidden, setHidden] = useState(false)
@@ -48,12 +56,33 @@ export function Walkthrough({ children }: { children: ReactNode }) {
   const [outcome, setOutcome] = useState(0) // one possibility at a time
   const counts = useRef(new Map<string, number>())
 
-  // Reachable notes only (the mockup needed this: a note about grouped rows is
-  // noise until a grouped row exists), then the chosen flow.
-  const visible = NOTES.filter((n) => (n.when ? n.when(s) : true)).filter(
-    (n) => !flow || n.flow === flow,
-  )
+  // THREE GATES, and the order is what makes the empty message answerable.
+  // Flow is what you picked; `at` is the screen the marker lives on; `when` is
+  // whether the state it describes exists yet. Screen is NOT a special case of
+  // `when` — `when` is a pure function of state, and no state field is the
+  // truth about which screen is mounted.
+  const inFlow = (n: Note) => !flow || n.flow === flow
+  const here = NOTES.filter(inFlow).filter((n) => n.at === pathname)
+  // Reachable notes only: a note about grouped rows is noise until a grouped
+  // row exists (the mockup needed this).
+  const visible = here.filter((n) => (n.when ? n.when(s) : true))
+  const elsewhere = [
+    ...new Set(NOTES.filter(inFlow).flatMap((n) => (n.at === pathname ? [] : [n.at]))),
+  ]
   const flows = [...new Set(NOTES.map((n) => n.flow).filter(Boolean))] as string[]
+
+  // THE EMPTY MESSAGE HAS TWO REASONS AND THEY ASK FOR DIFFERENT ACTS. Notes
+  // that are here but gated need the STATE to exist — drive the app to it.
+  // Notes that are on another screen need you to GO there, so the message names
+  // it. One message for both sent people hunting the state for a note that was
+  // never coming, which is the failure the `at` gate exists to end. The flow
+  // picker still offers every flow, because naming the destination is more use
+  // than hiding the flow that has one.
+  const empty = here.length
+    ? 'Nothing to say yet on this screen — these notes appear once the state they describe is reachable. Drive the app to that state, or pick another flow above.'
+    : elsewhere.length
+      ? `Nothing here. ${flow ? `The “${flow}” notes are` : 'The notes are'} on ${elsewhere.join(', ')} — go there, or pick another flow.`
+      : 'No notes are written for this screen.'
   const note: Note | undefined = visible[Math.min(i, Math.max(0, visible.length - 1))]
   const active = hidden || !note ? null : note.id
   const absent = note?.kind === 'absence'
@@ -66,15 +95,19 @@ export function Walkthrough({ children }: { children: ReactNode }) {
     }
   }
 
-  // Every 'do' note has exactly one marker — catches notes that quietly point
-  // at nothing after a control moves. Absence notes have exactly zero.
+  // EVERY note has exactly one marker, absence notes INCLUDED. They used to be
+  // asserted at zero — "you cannot glow a thing that is not there" — which left
+  // the reader hunting for a control the note never pointed at. An absence has
+  // a LOCATION: the debt count that isn't in the day header, the 0/8 that isn't
+  // on the group header. Mark the place, style it hollow.
+  //
+  // The assertion only means something now that `at` gates the note to its own
+  // screen. Without it the report fired on every screen a note was not on,
+  // which is noise that teaches you to ignore it — and it hid the one thing the
+  // assertion is for: a note that quietly points at nothing after its control
+  // moved or was renamed.
   useEffect(() => {
     if (!note) return
-    // EVERY note has exactly one marker, absence notes included. They used to
-    // be asserted at zero — "you cannot glow a thing that is not there" — which
-    // left the reader hunting for a control the note never pointed at. An
-    // absence has a LOCATION: the debt count that isn't in the day header, the
-    // 0/8 that isn't on the group header. Mark the place, style it hollow.
     const n = counts.current.get(note.id) ?? 0
     if (n !== 1) console.error(`walkthrough: note ${note.id} has ${n} markers (want 1)`)
   }, [note])
@@ -82,6 +115,11 @@ export function Walkthrough({ children }: { children: ReactNode }) {
   // A new note means a new possibility set — start it at the first.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setOutcome(0), [note?.id])
+
+  // Arriving on a screen starts you at its first note, not at whatever index
+  // the last screen left behind — the counts are per screen now, so a stale
+  // index reads as "you are 4/4 through" on a screen you just opened.
+  useEffect(() => setI(0), [pathname])
 
   const step = (d: number) => setI((x) => Math.max(0, Math.min(visible.length - 1, x + d)))
 
@@ -98,7 +136,15 @@ export function Walkthrough({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ active, absent, register }}>
       {children}
-      {note && (
+      {/* THE DOCK RENDERS EVEN WITH NO NOTE. It used to require one, which made
+          the drawer unmountable from inside itself: pick a flow whose notes are
+          all gated out by `when` — "evening", in the morning — and the dock
+          disappears, taking the flow picker with it. The walker is then left
+          with no way to reach the state that would bring the notes back, and no
+          way to pick a different flow. A control that removes the only means of
+          satisfying its own precondition is a trap, and this one was two clicks
+          deep in every prototype. */}
+      {(
         <div style={S.dock} role="region" aria-label="Walkthrough notes">
           {/* Hover/active/focus states need a stylesheet — inline styles cannot
               express them, and a control without a hover state feels dead.
@@ -121,7 +167,7 @@ export function Walkthrough({ children }: { children: ReactNode }) {
                   ‹
                 </button>
                 <span style={S.count}>
-                  {i + 1}/{visible.length}
+                  {visible.length ? `${i + 1}/${visible.length}` : '0/0'}
                 </span>
                 <button data-wt-nav onClick={() => step(1)} aria-label="Next note">
                   ›
@@ -151,15 +197,20 @@ export function Walkthrough({ children }: { children: ReactNode }) {
               </div>
 
               <div style={S.scroll}>
-                {note.kind === 'absence' && (
-                  <div style={S.absent}>the marker shows where this would be — it isn’t</div>
+                {note ? (
+                  <>
+                    {note.kind === 'absence' && (
+                      <div style={S.absent}>the marker shows where this would be — it isn’t</div>
+                    )}
+                    <div style={S.title}>{note.text}</div>
+                    <div style={S.expect}>{note.expect}</div>
+                  </>
+                ) : (
+                  <div style={S.expect}>{empty}</div>
                 )}
-                <div style={S.title}>{note.text}</div>
-                <div style={S.expect}>{note.expect}</div>
-
               </div>
 
-              {note.outcomes &&
+              {note?.outcomes &&
                 (() => {
                   // The disclosure lives ON the thing it discloses. It used to
                   // sit in a footer at the far corner of the panel, which asked

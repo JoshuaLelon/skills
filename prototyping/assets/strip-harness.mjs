@@ -5,10 +5,11 @@
 //   1. Refuses to run on a dirty git tree (the strip must be reviewable + revertable).
 //   2. Deletes src/walkthrough.tsx and src/fixtures/script/ (harness by path —
 //      the lifetime-segregation rule paying off: "becomes nothing" is a directory).
-//   3. Unwraps every <Mark note="…">…</Mark> and the <Walkthrough> wrapper by
+//   3. Deletes every e2e spec that carries the `@harness-spec` marker.
+//   4. Unwraps every <Mark note="…">…</Mark> and the <Walkthrough> wrapper by
 //      PARSING each file, not by matching text — see THE BRACE PROBLEM below.
-//   4. Removes walkthrough / fixture-script imports.
-//   5. Verifies its OWN OUTPUT: every rewritten file must still parse, and the
+//   5. Removes walkthrough / fixture-script imports.
+//   6. Verifies its OWN OUTPUT: every rewritten file must still parse, and the
 //      strip must not have invented any of the shapes this rewrite is known to
 //      get wrong. Then greps for residual harness references.
 //
@@ -40,11 +41,12 @@
 // matching, because the entire lesson here is that a plausible-looking text
 // rewrite of JSX fails silently.
 //
-// Flags: --states  also delete src/states.tsx and its main.tsx route
+// Flags: --states  also delete src/states.tsx and its route in routes.ts
 //        (default: keep — the states page is useful in production too)
 //
 // After running: `npm run gate && npx playwright test` must be green before the
-// strip commit. Flow tests survive by design — they never touch the harness.
+// strip commit. Flow tests survive by design — they never touch the harness,
+// except the ones that deliberately do, which is what `@harness-spec` is for.
 
 import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
@@ -54,6 +56,19 @@ import { join } from "node:path";
 const ROOT = process.cwd();
 const STRIP_STATES = process.argv.includes("--states");
 const HARNESS_TAGS = new Set(["Mark", "Walkthrough"]);
+
+// THE MARKER A HARNESS-SCOPED SPEC CARRIES. A spec that drives the walkthrough
+// cannot outlive it, and this script used to walk `src/` only — so it deleted
+// `walkthrough.tsx` and left the spec behind to fail, which breaks the one
+// promise the strip commit makes: `npm run check` is green. The instruction was
+// a line in capitals telling a human to delete the file by hand, addressed to
+// someone reading it years later.
+//
+// A WORD IN THE FILE, not a filename convention. `*.harness.spec.ts` is
+// invisible in the tab of the editor you are reading the spec in, and the
+// person who must not rename the file is the one least likely to know the rule.
+// The word sits in the header comment where the spec already explains itself.
+const HARNESS_SPEC = "@harness-spec";
 
 // -- 1. clean tree only ------------------------------------------------------
 try {
@@ -131,6 +146,20 @@ for (const p of ["src/walkthrough.tsx", "src/fixtures/script"]) {
 if (STRIP_STATES && existsSync(join(ROOT, "src/states.tsx"))) {
 	rmSync(join(ROOT, "src/states.tsx"));
 	deleted.push("src/states.tsx");
+}
+
+// -- 3b. harness-scoped flow specs -------------------------------------------
+// These are harness by SUBJECT, not by path: they sit in `e2e/flows/` beside
+// the locked flows, which is where they belong for as long as the harness is
+// there to test. So they name themselves, and the strip reads the name. Every
+// other spec in that directory survives untouched, by design.
+if (existsSync(join(ROOT, "e2e"))) {
+	for (const f of walk("e2e")) {
+		if (!/\.(spec|test)\.tsx?$/.test(f)) continue;
+		if (!readFileSync(join(ROOT, f), "utf8").includes(HARNESS_SPEC)) continue;
+		rmSync(join(ROOT, f));
+		deleted.push(f);
+	}
 }
 
 // -- 4. unwrap Mark / Walkthrough, drop their imports ------------------------
@@ -256,8 +285,10 @@ for (const file of srcFiles()) {
 			.split("\n")
 			.filter((l) => !/import\s.*from\s+['"][./]*states(\.tsx)?['"]/.test(l))
 			.join("\n");
-		// main.tsx's states route line references StatesPage — leave a clear error
-		// if it survives; verification below reports it.
+		// A Vite entry IMPORTS the states page, and the filter above drops that
+		// line. React Router names it as a STRING in routes.ts (`route('__states',
+		// 'states.tsx')`), which no import filter can see — delete that line by
+		// hand. `--states` is off by default, so this is the rarer path.
 	}
 	if (after !== before) {
 		writeFileSync(join(ROOT, file), after);
@@ -354,6 +385,17 @@ if (STRIP_STATES) NEEDLES.push("StatesPage");
 for (const file of srcFiles()) {
 	const text = readFileSync(join(ROOT, file), "utf8");
 	for (const n of NEEDLES) if (text.includes(n)) residue.push(`${file}: contains "${n}"`);
+}
+// A spec that still addresses the DRAWER is a spec that needed the marker and
+// did not carry it — the convention only holds if forgetting it is loud. The
+// drawer's accessible name is skill-owned and fixed, so it is a reliable needle:
+// nothing in a product screen answers to it.
+if (existsSync(join(ROOT, "e2e"))) {
+	for (const f of walk("e2e")) {
+		if (!/\.(spec|test)\.tsx?$/.test(f)) continue;
+		if (!readFileSync(join(ROOT, f), "utf8").includes("Walkthrough notes")) continue;
+		residue.push(`${f}: still addresses the walkthrough drawer — add ${HARNESS_SPEC} to its header so the strip deletes it`);
+	}
 }
 
 console.log(`strip-harness: deleted ${deleted.length}: ${deleted.join(", ") || "(none)"}`);
