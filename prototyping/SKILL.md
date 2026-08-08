@@ -144,8 +144,9 @@ day one (`routes.ts`; `/__states` included), and route ErrorBoundaries +
 `AppError` (`lib/errors.ts`) are the production error mechanism, already. It creates the canonical layout, copies the gate and the
 pre-commit hook, installs Playwright (chromium-only, `webServer` self-starts Vite —
 rules in `references/flow-tests.md`), ships the store host with the dev invariants
-built in, and deliberately overwrites `main.tsx` (states route + StrictMode +
-Walkthrough). A lock that needs setup first is a lock that gets deferred.
+built in, and **deletes Vite's `main.tsx`**: React Router owns the entry, so
+`entry.client.tsx` (StrictMode) and `routes.ts` (the `/__states` route) take its
+two jobs. A lock that needs setup first is a lock that gets deferred.
 
 ### Canonical layout — never re-derive it
 
@@ -169,10 +170,22 @@ src/
                     #   BYTE-IDENTICAL to production's; it ports, and the seeder
                     #   rebases what it mints
     entities/       # becomes tables — sources.ts exports SOURCES, …
-    script/         # walkthrough screenplay; notes.ts ◆ — becomes nothing
+    script/         # walkthrough screenplay; notes.ts ◆ — DELETED at the strip
+    model/          # canned answers standing in for a call production makes —
+                    #   becomes the call; product code may import this, not script/
+      latency.ts    ◆ think(answer, ms) — the wait, so waiting states are walkable
     view/           # chip lists, colour tokens — becomes nothing
-    accessors.ts    ◆ accessor() helper — sourceOf(id) etc., throws on miss
-  store/            ◆ reducer.ts starter — pure; the gate keeps it that way
+    accessors.ts    ◆ one(name, rows, ref) — accessors TAKE their rows, throw on miss
+    worlds.ts       ◆ named starting states — freshState's argument
+    worlds.test.ts  ◆ every world is a state the product could have ARRIVED at
+  store/
+    state.ts        ◆ State, freshState, the helpers the cases are written with.
+                    #   SEPARATE FROM LINE ONE, not at a size threshold: this is
+                    #   the file that SEEDS, so it holds fixture rows — and a
+                    #   file with cases may not (gate: fixture-in-reducer)
+    reducer.ts      ◆ the Action union and the cases — pure; the gate keeps it
+                    #   that way. Re-exports state.ts, so `store/reducer` stays
+                    #   the one import the host and the screens know
   root.tsx          ◆ RR layout; mounts <Walkthrough>; root ErrorBoundary
   routes.ts         ◆ real routes from day one (index + /__states)
   entry.client.tsx  ◆ StrictMode lives here (the gate watches it)
@@ -183,11 +196,12 @@ src/
   screens/          # L3 — composition only
   states.tsx        ◆ /__states — auto-collects STATES via import.meta.glob
   walkthrough.tsx   ◆ <Walkthrough> drawer + <Mark> markers
-  main.tsx          ◆ states route + StrictMode + Walkthrough (overwritten)
 e2e/
   helpers.ts        ◆ test/expect with the clock pre-pinned to NOW
-  flows/            # one spec per locked flow
+  flows/            # one spec per locked flow; a spec that drives the HARNESS
+                    #   carries @harness-spec and the strip deletes it
 playwright.config.ts ◆
+vitest.config.ts    ◆  # the unit tier — node only, src/**/*.test.ts, never e2e/
 scripts/gate.mjs    ◆
 scripts/strip-harness.mjs ◆  # Phase 7: deletes/unwraps every harness affordance
 scripts/sync-runtime.mjs  ◆  # `npm run sync` — has the skill moved under you?
@@ -196,11 +210,22 @@ scripts/sync-runtime.mjs  ◆  # `npm run sync` — has the skill moved under yo
 
 ### Conventions — decided once, here
 
-- **Ids are `<type>:<kebab-slug>`** (`src:fee-salience`). The slug is minted from
+- **Refs are `<type>:<slug>`** (`src:fee-salience`). The slug is minted from
   the title once and **never changes when the title does** — renaming a label must
-  not touch references.
-- **Accessors are `<entity>Of(id)` and throw on a miss.** Returning `undefined`
-  is the display-name merge bug wearing a seatbelt.
+  not touch references. Inside the slug the two separators each mean one thing: a
+  **hyphen joins words** in one level, a **dot separates levels**
+  (`prompt:retain.assess-proof`). Reach for a dot the moment a ref has levels —
+  the alternative is flattening them into hyphens, and `retain-assess-proof` and
+  `retain.assess-proof` and `retain-assess.proof` all hyphenate the same way, so
+  nothing can split the flat form back. The gate refuses a leading, trailing or
+  doubled dot; it cannot tell a flattened slug from a one-level one, so that half
+  is yours to hold.
+- **Accessors are `<entity>Of(rows, ref)`, take their rows, and throw on a miss.**
+  Returning `undefined` is the display-name merge bug wearing a seatbelt. They take
+  the rows because a production query takes the owner whose rows to read, and a
+  function closing over a module array has no owner and nowhere to put one — so
+  **entity rows live in state, seeded by `freshState`**, where a world can select
+  them and a user can edit them. A module array can be changed by nobody.
 - **Actions are `{ type: 'entity/verb', …data }`** — data only, never closures.
 - **`ACTIONS` is a fixture** — `fixtures/entities/actions.ts`, an append-only
   array of `{ at, by, action }` rows (`at` derived from `NOW`; `by` = the owner
@@ -226,8 +251,8 @@ every call site when a primitive changes.
 
 **L0 — Fixture.** Typed plain data. No HTML, no CSS values (`c: 'p1'` the token name,
 never `'var(--p1)'`; a tweet is `{kind:'tweet', author, text}` rendered by a
-component, never a `body` of raw HTML). Export accessors (`projectOf(id)`) so "don't
-reach into the fixture" has a cheap path. Full rules below.
+component, never a `body` of raw HTML). Export accessors (`projectOf(rows, ref)`) so
+"don't reach into the fixture" has a cheap path. Full rules below.
 
 **L1 — Logic.** Pure functions plus the reducer. Never imports from the view, never
 returns markup. The sorting rule: **if it reads state and does not return markup, it
@@ -279,26 +304,105 @@ inherits it. Its rules, each enforcing a standard defined elsewhere in this skil
 | `store-imports-view` | store never imports components, screens, or react |
 | `fixture-holds-view` | no CSS values, HTML, or wall-clock dates in entities |
 | `seam-leak` | the view reads through accessors, never `fixtures/entities` |
+| `fixture-in-reducer` | a file with reducer cases has no fixture rows in scope |
+| `unregistered-fx` | every `fx: '<name>'` a case emits has a `registerFx('<name>'` somewhere in `src/` |
+| `script-import` | only the walkthrough imports `fixtures/script` — the strip deletes it |
+| `wall-clock-in-view` | no `Date.now()` in screens/components; `now` comes from state |
+| `unnamed-region` | a `<section>`/`<form>` carries an accessible name, or it is not a landmark |
 | `raw-registry-import` | screens import your wrapped primitive, never `components/ui` |
 | `missing-states` | every primitive exports `STATES` |
 | `bad-locator` | flow tests use role/name only — no test ids, sleeps, or class/id `.locator()` selectors |
-| `strict-mode` | `main.tsx` keeps `<StrictMode>` — it *is* the render-idempotence check |
-| `bad-id-format` | entity ids are `type:kebab-slug` |
+| `strict-mode` | the entry keeps `<StrictMode>` — it *is* the render-idempotence check |
+| `bad-ref-format` | entity refs are `type:slug`, hyphens inside a level and dots between levels |
 | `bad-action-name` | reducer cases are `'entity/verb'` strings |
 | `bad-test-name` | flow test names are verb-first, never "should" |
 | `snapshot-in-file` | aria snapshots stay inline — the test is the readable spec |
 | `accent-leak` | the harness accent appears nowhere in the product |
+| `file-size` | a file stays the size its directory allows — measured in **code lines only** |
 
 Escape hatch: a `gate:allow <rule-id>` comment on or above the line. A rule needs a
 cheap path — and the allow comment makes every exception deliberate and greppable,
 instead of a rule silently ignored.
 
-The pre-commit hook runs the gate plus the flow suite, so every commit re-proves
-the standards and the locked flows without anyone remembering to. **Definition of
-done for every change set, committed or not: `npm run gate` and
-`npx playwright test --pass-with-no-tests` both green, run before reporting
-the change complete** (the flag matters before the first flow is locked).
-Reporting done without running the gate is not finishing; it is stopping.
+**`file-size` counts code, never comments.** Blank lines and comments are free, at
+any length. This is the whole design: a prototype earns its keep by writing down
+*why*, and a total-lines limit is a limit on writing things down — you would watch
+people delete the explanation to make the number go down. Files in a healthy
+prototype run 25–55% comment, so the two measures are not close. Limits are per
+directory (`SIZE_RULES` in `gate.mjs`) because a store slice and a primitive have
+different natural sizes, and they come in two tiers: over `warn` prints and still
+passes, over `max` fails. The warn tier is the point — a file crosses it while
+splitting is still cheap. `gate:allow file-size` anywhere in a file silences both.
+Harness files the app cannot fix (`walkthrough`, `states`, `host`) are exempt;
+their size is the skill's problem, not the project's.
+
+**When the store's warn tier fires, split by ACTION PREFIX, not by feature.**
+`state.ts` is already at the bottom — the scaffold ships it — so this split adds
+one file per prefix in `slices/` and reduces `reducer.ts` to the root `Action`
+union plus a delegation on the prefix. Slices import
+`State` as a **type only**, so there is no runtime cycle, and every store rule
+survives — the rules are about the shape, not the file count. Route with a type
+predicate narrowing to `Extract<Action, { type: prefix/anything }>`, and give the
+tail a `never` parameter: the compiler then refuses to build the moment an
+action's prefix is owned by nothing, which is the one failure a hand-written
+dispatcher makes easy. Do it at the warning, not at the cap — the evidence case
+reached
+1082 lines against a 320 cap, carrying its own `gate:allow` with the split plan
+written in a comment above it.
+
+**Six complexity trip-wires print and never fail.** Counted across the tree:
+screens (7), entity files (12), locked flows (20), `State` fields (35), store
+code lines (1200), and acts before the first assertion in one test (5 — and
+`goto`/`open` is *not* an act, since every test navigates and it is the step a
+world absorbs). They never fail on purpose: **a threshold that can fail becomes a
+number to game**, and shaving one state field to get under a line is the
+behaviour they exist to catch. They are silent on a fresh scaffold and start
+firing as the prototype grows.
+
+> **Read a trip-wire's ADVICE, not its number.** Each row prints what it is a
+> proxy FOR and the move that answers it. Check the proxy: **a row whose advice
+> is already taken is satisfied, however the number then moves.**
+
+That is the common case, not a caveat. The store row said "this logic needs a
+tier that is not the browser"; the tier was built, it found a real bug in its
+first minute, and the count then rose from 2,162 to 2,329 because the features
+that landed next added code. The `State` fields row fell 46 → 36 when eleven
+booleans became one union, then rose to 43 as features landed — two moves, two
+unrelated reasons, and neither was the point. **A reader holding only the number
+concludes nothing happened, and then either silences the row or starts chasing
+the measurement — which is worse than ignoring it, because it shrinks the proxy
+and leaves the thing.** Answer a row by doing the move, or by writing down why
+the proxy is already handled. Never by tuning the number.
+
+The pre-commit hook runs the gate, the unit tier and the flow suite, so every
+commit re-proves the standards and the locked flows without anyone remembering
+to. **Definition of done for every change set, committed or not: `npm run check`
+green, run before reporting the change complete** — gate, `vitest run
+--passWithNoTests`, `playwright test --pass-with-no-tests`, in that order (the
+flags matter before the first flow is locked). Reporting done without running it
+is not finishing; it is stopping.
+
+### Two test tiers — unit before browser
+
+The scaffold ships `vitest.config.ts` (node only, `src/**/*.test.ts`, and
+**nothing under `e2e/`** — a runner that claimed those would load a browser
+fixture in Node and fail confusingly) and the `unit` script. The hook runs it
+**ahead of Playwright**: a combinatorial fault must not wait three seconds behind
+a browser to report itself.
+
+> **A flow test protects the sequence and the language. A unit test protects the
+> combinatorics.**
+
+Twenty walked paths cannot cover a store of pure functions across ninety actions,
+and are not meant to — the browser suite proves the order of acts, the copy on
+screen, and the absences. In the evidence case the tier found a real product bug
+in its first minute: a helper that inserted a block *before* the anchor it was
+told to start after, on a path with a screen that no flow test walked and none
+would have, because the arithmetic is not narrative. **Write a unit test for any
+pure function you would otherwise check by clicking three times**; check 6 below
+already says derived logic moves to `store/` *with tests*, and this is the runner
+that was missing. `worlds.test.ts` ships as the first one, so the tier is never a
+runner with nothing in it.
 
 ### Fixture rules (in the order they pay)
 
@@ -313,11 +417,20 @@ shape, that is what accessors are for.
 2. **One file per entity, one array per entity, named for the table it becomes.**
    `fixtures/sources.ts` exports `SOURCES` — never one `MOCK` object with twelve
    heterogeneous keys.
-3. **Segregate by lifetime, in directories:** `entities/` becomes tables; `script/`
-   (the walkthrough's screenplay — proposals, planted near-duplicates) is
-   deleted at the strip; `view/` (chip pickers, colour tokens) **becomes no
-   table** — the files themselves survive into production as UI option data.
-   "Is this a table?" is then answered by the path.
+3. **Segregate by lifetime, in directories:** `entities/` becomes tables;
+   `script/` (the walkthrough's screenplay — the planted near-duplicate, the
+   note text) is **deleted** at the strip; `model/` holds canned answers standing
+   in for a call production will make (an LLM's phrasings, a third-party API) and
+   **becomes that call**; `view/` (chip pickers, colour tokens) becomes no table
+   but survives as UI option data. "Is this a table?" is then answered by the path.
+
+   **Only the walkthrough may import `script/`** — the gate's `script-import`
+   rule, because the strip deletes that directory and anything else importing it
+   stops compiling at the moment of the port. Mocked model output therefore goes
+   in `model/`, behind an **async** function taking the arguments the real call
+   takes; the port replaces the body and no caller moves. Mocking the model that
+   way is the method, not a shortcut. See the store rules for why `async` is not
+   optional and where the answer is allowed to arrive.
 4. **Explicit `ref` on every entity; every reference by ref, never by name.** Two
    entities with the same display name silently merge in a name-keyed object, and
    renaming a label — the most frequent change there is — breaks every reference.
@@ -348,8 +461,9 @@ shape, that is what accessors are for.
    generated a third of the real schema.
 
 The payoff: entity arrays become seed rows, interfaces are already DTOs, and
-`sourceOf(id)` becomes the loader's query function with the **same signature** — so
-no screen changes when the data starts coming from Postgres.
+`sourceOf(rows, ref)` becomes the loader's query function with the **same
+signature** — the rows argument is the owner argument, one step early — so no
+screen changes when the data starts coming from Postgres.
 
 **Timestamps cross unedited; `owner` does not cross at all.** Both were measured
 on a real port, and only one of them was ever a real mismatch:
@@ -377,13 +491,93 @@ on a real port, and only one of them was ever a real mismatch:
 
 - **Named actions, one reducer, actions carry data and never closures.**
 - **Effects as data on a queue the host drains.** The single best portability call
-  on record — the design survived the port verbatim. Copy it first.
+  on record — the design survived the port verbatim. Copy it first. **Every `fx` a
+  case names must have a `registerFx` handler**: an unregistered one is the bug a
+  reducer cannot show you — the state is right, the effect simply never happens —
+  so it is checked **twice, at two different times**. The gate's `unregistered-fx`
+  reads the tree and fails on a name nothing registers; the host throws on it in
+  DEV (check 4). They are not redundant: **the throw needs the dispatch to be
+  reached**, and an unregistered effect lands on a path nobody has walked, which
+  is the one case a runtime check cannot see. The evidence case shipped seven.
+  Only the static half fires before somebody builds a screen on top of the hole.
+- **Time is an input, not a reading.** Everything time-dependent is a pure function
+  of `(state, now)`. `now` lives in state, opens at the fixture's `NOW`, and
+  arrives by `clock/set` from the tick in `root.tsx`; no reducer, screen or
+  primitive reads the wall clock (gate: `wall-clock-in-view`). The template ships
+  this — keep it even when nothing looks time-dependent yet, because the retrofit
+  is not a refactor. What it prevents is a **mode you SET** (`evening: true`,
+  `isOverdue: true`): the harness button that sets it and the shipping behaviour
+  are then two code paths with one of them under test. What it buys, from the one
+  decision: the walk reaches any hour by passing a different `now`; a flow test
+  does the same with `page.clock` while touching no harness affordance — which is
+  what lets a time-dependent locked flow survive the strip; and production passes
+  the real one and runs the code the tests ran. Cost, honestly: one action per
+  displayed minute on the replay log, and a field a timeless prototype never
+  reads. Delete the *timer* if nothing depends on time; never delete the *field*
+  and bring time back as a flag.
+- **State is an input too — and it is `freshState`'s argument, never an action.**
+  `now` and state differ in one way and it decides the design: `now` arrives
+  after the store starts, by action, repeatedly; state arrives once, at
+  construction. So `freshState(world = WORLD)`, with the worlds named in
+  `fixtures/worlds.ts` and read from `?world=` before the store is built. **The
+  parameter is the PORT's signature, not a test affordance**: production's
+  initial state comes from a loader for one owner, so a no-argument `freshState`
+  cannot exist there — it is already wrong today. The default keeps every call
+  site, including the three in `host.tsx`, which must stay byte-identical with
+  production's. Three limits make it an input instead of a state backdoor:
+  **a world SELECTS and PATCHES rows `entities/` already holds and never invents
+  a `ref`** (an invented ref throws 404 here and has no seed row after the port —
+  the two failure modes agree, which is what makes it a rule); **a world must be
+  a state the product could have ARRIVED at**, because a starting state no
+  sequence of actions can reach makes a passing test mean nothing, and
+  `worlds.test.ts` checks this rather than trusting it; and **the world set is a
+  closed union**, never a free-form payload. Add a world the turn a test needs
+  it and never before — a world with no reader is a fixture nobody checks. **One
+  world is enough for a long time: keep the parameter and add nothing.**
+- **A reducer cannot await, so an answer from outside arrives by ACTION.** The
+  shape is the one the store already uses for everything external:
+  `proposal/start` → `fx 'compose'` (handler, async) → `proposal/composed`
+  (action, data) → state. The reducer describes what it wants, the handler makes
+  the call, the answer returns as an action and lives in state; the reducer reads
+  state and never a module — the same rule `now` follows. So every stand-in in
+  `fixtures/model/` is an **async function taking the arguments the real call
+  takes**, and the only *value* imports of that directory are in the `registerFx`
+  handlers, which is where a call belongs. (Type imports stay anywhere: they are
+  erased, and the types ARE the call's contract.) A canned answer read
+  synchronously inside a case is not a body swap waiting to happen — the shape is
+  wrong, and the port has to rewrite the case. A gate rule cannot see this, so
+  hold it yourself. Give every call a delay (`fixtures/model/latency.ts`): a mock that
+  answers instantly makes every waiting state dead code, and a prototype exists
+  to be walked. **Standing in for no call? Delete `fixtures/model/`; nothing
+  outside it refers to it.**
+- **Whatever previews a change must be computed by the function that performs
+  it.** A screen that renders "here is what will happen" from a separately-built
+  structure is a picture of a diff: the two agree until an input is added to one
+  of them, and then the preview reads one way while the write does another. Same
+  rule for a confirmation listing what it will delete, and for an undo preview.
 - **Run invariants at the tail of every case that can break them** — never "before
   every render". If correctness depends on *when* render happens, it will not port:
   the target framework owns render timing, you do not.
 - **No module-level mutable state outside the store.** Mint ids from a counter *in*
   state (a module counter burns ids under double-invoked producers). Grep
   `export let` and judge each — the store itself and a timer handle are legitimate.
+- **A case reads its arguments and its state, and nothing else.** A case that
+  reaches a module-level fixture array — `deferrals: TASKS.find(x => x.ref ===
+  t.ref)?.deferrals` — passes everything: `impure-store` looks for clocks and the
+  DOM, and replay equality cannot see it, because the fixture is constant within a
+  run. It turns into a silently wrong answer the moment initial state becomes a
+  parameter, which is the direction of the port, where those arrays do not exist.
+  Anything a case needs is **on the row it was handed, or in the action**. The
+  gate's `fixture-in-reducer` catches the common form — a file that both seeds and
+  reduces — by refusing fixture rows in scope there; it cannot see a helper in
+  another file reading the fixture on a case's behalf, so hold the law yourself.
+  **The scaffold ships `store/state.ts` and `store/reducer.ts` already split for
+  this reason**, so seeding and reducing never share a file. One file would pass
+  the gate today and route around it the moment `worlds.ts` holds real rows: the
+  rule reads the IMPORT, and `fixtures/worlds` is not `fixtures/entities`.
+  Stated as the pair it belongs to: **the invariants check that state does not
+  live outside the STORE; nothing checks that a case does not read outside its
+  ACTION.**
 - **Navigation is an action; never rebuild state on a screen change** — or a save
   works and the navigation it requested throws the result away. Free in the
   prototype; unfindable there too.
@@ -399,7 +593,7 @@ case 'task/complete':
   return { ...s, done: add(s.done, a.id), _fx: [...s._fx, { fx: 'toast', text: 'Done' }] };
 ```
 
-**Five checks — three run themselves, one is the gate, one stays judgment:**
+**Six checks — four run themselves, one is the gate, one stays judgment:**
 
 1. **Replay equality** — built into the host: after *every* dispatch, the action
    log is re-reduced from `freshState()` and compared to live state. Throws the
@@ -407,15 +601,44 @@ case 'task/complete':
    writes state directly, or anything nondeterministic gets in (ids minted from
    `Date.now()`). The property that makes the port a copy, checked continuously.
 2. **Render idempotence** — StrictMode double-invokes render; the scaffold's
-   `main.tsx` keeps it on and the gate's `strict-mode` rule refuses its removal.
+   `entry.client.tsx` keeps it on and the gate's `strict-mode` rule refuses its
+   removal (the rule accepts either entry file, so a Vite `main.tsx` is covered
+   too — but this scaffold ships React Router, so the entry is the client one).
 3. **Freeze what render sees** — the host deep-freezes state after every dispatch,
    so view writes throw at the write instead of corrupting quietly. (`Set`
    mutations cannot be frozen out — they surface as replay divergence instead.)
-4. **Architecture** — the gate: `export-let`, `impure-store`, `store-imports-view`.
-5. **Derived data belongs to the store** — the one that stays judgment: if it
+4. **Unhandled effects** — the host throws in DEV on any `fx` with no registered
+   handler. Without it, a case emitting `{ fx: 'startProposal' }` that nobody
+   registered leaves a button that dispatches correctly, reduces correctly, and
+   does nothing — invisible to every assertion about state. **This one needs the
+   dispatch to be REACHED**, which is why the gate checks the same fact
+   statically (`unregistered-fx`): the effects that go missing are on the paths
+   nobody walked, and that is exactly where a runtime check is blind.
+5. **Architecture** — the gate: `export-let`, `impure-store`,
+   `store-imports-view`, `unregistered-fx`.
+6. **Derived data belongs to the store** — the one that stays judgment: if it
    reads state and does not return markup, move it to `store/`, with tests.
 
-Warning that motivates all five: **a full `innerHTML` re-render hides every piece of
+Checks 1–4 throw in the browser, where **nothing was watching them**: React does
+not catch a throw from an event handler and neither did Playwright, so the page
+threw and the suite stayed green. The scaffold's `e2e/helpers.ts` fails a test on
+any uncaught page error, which is what connects the four to the suite.
+
+**It listens for TWO things, because there are two ways to throw.** `pageerror`
+is an uncaught exception; a rejected promise is not one and raises
+`unhandledrejection` instead. Every model call is `void call().then(dispatch)`
+with no `.catch`, so an fx handler that rejects and an invariant thrown inside a
+`.then` land in the half a single listener never hears — which is the same class
+the invariants exist to surface. One listener made the connection halfway.
+
+**What they cannot see is a wrong answer arrived at deterministically** — a case
+overwriting the field it needed to read back, a case reading a fixture array, a
+path that drops user input.
+Replay and freeze pass on both. The rules that catch that class are preview/perform
+above and the second-invocation rule in `references/flow-tests.md`; a green
+invariant is not a correct app.
+
+Warning that motivates all six: **a full `innerHTML` re-render hides every piece of
 state living outside the store** — the world is re-read each frame, so staleness is
 structurally impossible, right up until the framework arrives and it all surfaces at
 once. The checks fail *now* instead.
@@ -444,18 +667,40 @@ keeping it drivable. **Keep volatile text out of the name**: "Change time of X,
 currently 10:20" is a fine label and a locator that churns every run — put the
 changing part in `aria-describedby`.
 
+**A `<section>` or `<form>` with no accessible name is not a landmark at all** —
+no `region` role, nothing to scope a snapshot to, nothing for a screen reader to
+list. The two costs land together, which is the tell: a screen whose parts a
+locator cannot address is a screen whose parts a screen reader cannot address.
+Name every one at the moment you write it (gate: `unnamed-region`), because the
+flow test that needs the name is written later, by which time the fix looks like
+test plumbing rather than what it is.
+
 ## Phase 5 — Walk it
 
 Physically, with the user. Note what feels *wrong*, not what looks wrong — load
-`references/walk-critique.md` for the seven failure families that are invisible in
+`references/walk-critique.md` for the failure families that are invisible in
 prose and obvious in use.
 
 The harness ships in the scaffold (`src/walkthrough.tsx`, already wrapping the
 app in `root.tsx`). Using it is two moves: write the notes into
-`src/fixtures/script/notes.ts` as `{ id, target, text, expect, … }` — never as
-prose in markup — and wrap each control a note references in `<Mark note="n1">`.
-One note at a time (`‹ 3/6 ›`), the single marker, scroll-to-marker on step, the
-exactly-one-marker assertion, and the kill switch are built in.
+`src/fixtures/script/notes.ts` as `{ id, at, target, text, expect, … }` — never
+as prose in markup — and wrap each control a note references in
+`<Mark note="n1">`. One note at a time (`‹ 3/6 ›`), the single marker,
+scroll-to-marker on step, the exactly-one-marker assertion, and the kill switch
+are built in.
+
+**`at` is REQUIRED and it is the route the marker lives on** — a `NotePath`
+literal union each project narrows to its own routes. The drawer offers a note
+only when `at` matches `useLocation().pathname`, so a note never names a control
+that is on another screen, and the one-marker assertion stops firing on every
+screen a note is not on. Optional was the bug: the next note written would be
+ungated by default. Take the path from the router and never from a `screen`
+field in state — a state field is written by a handful of actions, and the nav
+rail and a typed URL both move the router past all of them.
+
+**This is a breaking change to `Note` in any prototype scaffolded before it.**
+Migration, one line: `grep '<Mark note='` across `src/`, read off which screen
+file each id sits in, and put that screen's route on the note.
 
 **It is a drawer docked beside the content column, vertically centred** — not a
 strip along the bottom. The bottom strip cost a saccade the full height of the
@@ -492,6 +737,10 @@ would otherwise have to hold in their head, disclosed progressively:
   exceptions cannot be satisfied by pointing at nothing.
 - **Reachability** — a note with a `when(state)` predicate hides until the state
   it describes exists; a note about grouped rows is noise until a grouped row does.
+- **The empty drawer states WHICH of two reasons applies.** Notes gated by
+  `when` are here and need the state; notes gated by `at` are on another route
+  and need you to go there — so the message names the routes. One message for
+  both sent the walker hunting the clock for a note that was never coming.
 
 Four rules the layout encodes, so they do not get argued back out — each was
 found by walking it, not by reasoning about it:
@@ -522,7 +771,10 @@ checks them, and flow tests are transcribed from them.
 Two judgments stay yours while walking:
 
 - **Consolidate notes** — merge same-observation pairs; fold an example into the
-  rule above it.
+  rule above it. **Never renumber.** `<Mark note="n9">` names a note from inside
+  product markup, so closing the gap left by a merged or deleted note moves every
+  marker after it onto the wrong control, silently, since every id still resolves.
+  Gaps are correct: the number is an identity, not a position.
 - **Scaffolding gets a dashed border** (a prototype clock, "jump to evening") — the
   user must never wonder whether something is a design decision.
 
@@ -554,11 +806,25 @@ mechanics in `references/flow-tests.md`; the shape in brief:
 
 More narrative slices until the feature set is covered. **Prioritise the next slice
 by what is least validated, not what is next in the docs** — novel interface beats
-"the list you built, plus checkboxes". Some things are cheaper to get right in the
-build than to prototype; saying so is part of the job.
+"the list you built, plus checkboxes". **A law whose only site does not exist yet
+is the least validated thing in the app**: if a law says the missing work appears
+only in the evening digest, and there is no digest, the product's headline claim
+has never been walked. An absence with nowhere to be present is an omission, not a
+design. Some things are cheaper to get right in the build than to prototype;
+saying so is part of the job.
 
 - Docs and prototype update **in the same turn**; drift accumulates exactly by
   deferring the doc edit.
+- **A reason is the most valuable thing in a doc — never delete one to shorten a
+  file.** Compression is not an improvement here: the recorded *why*, including
+  what was built and removed, is what stops the removed thing being rebuilt.
+  Expect an honest rewrite to come out longer, and judge it on what it corrected.
+- **Never write a count into a doc** ("six primitives", "12 laws"). Nobody
+  maintains it, and a stale count is worse than none — it is read as a checklist.
+- **Rewrite every claim as one short active sentence; the false ones surface.** A
+  pass meant only to plain-up the prose found seven untrue statements, including a
+  law contradicting itself twelve lines apart. A long sentence hides a
+  contradiction in its subordinate clause.
 - Flag contradictions out loud before implementing a change that cuts against an
   established principle.
 - Retire old vocabulary completely, in the same change — no legacy cross-reference
@@ -588,12 +854,17 @@ compiler API: `typescript` must be installed and 6.x or older — 7 dropped
 `createSourceFile`, and the script refuses on it rather than falling back to text
 matching. A verification failure means revert and fix the codemod, never
 hand-patch the output: if one shape came out wrong, every occurrence of it did.
-Add `--states` to also drop the states page (default:
-keep it — it is useful in production too). The strip commit may carry the
-strip's blank lines unformatted — the prototype ships no formatter; the
-production toolify's biome pass owns formatting. `npm run gate &&
-npx playwright test` must be green before the strip commit — the flow tests
-survive by design, because they never touched the harness.
+It also deletes every e2e spec whose text carries **`@harness-spec`** — a spec
+that drives the walkthrough cannot outlive it, and the strip that removes
+`walkthrough.tsx` must remove its test in the same act or `npm run check` is red
+at the strip commit. Put the word in the spec's header comment the turn you
+write it (`references/flow-tests.md`); the strip fails loudly on any surviving
+spec that still addresses the drawer. Add `--states` to also drop the states
+page (default: keep it — it is useful in production too). The strip commit may
+carry the strip's blank lines unformatted — the prototype ships no formatter;
+the production toolify's biome pass owns formatting. `npm run check` must be
+green before the strip commit — every other flow test survives by design,
+because it never touched the harness.
 
 The audit a divergent port once needed is **dissolved by construction**: the
 flows carry and must pass, the screens move rather than being re-derived, and
@@ -624,6 +895,20 @@ supposed to touch.
 `--write` takes the managed updates; `--check` exits non-zero for CI. Files the
 app is EXPECTED to diverge on — `now.ts` ("change the date, not the pattern")
 and the starter primitives — are reported but never overwritten.
+
+**`--write` never silently destroys local work.** It used to: a managed file the
+app had edited was overwritten, reported as `UPDATED`, with nothing to say that
+anything was lost. Comparing two files can only say THAT they differ, so sync
+records the hash of every managed file it writes or finds in sync, in
+`.prototyping-sync.json` — **commit that file**, it is the shared baseline. Then
+a managed file that differs from the skill AND from the baseline is the app's own
+change: sync prints it as `DIVERGED`, skips it, and exits non-zero. A file with
+no baseline yet is treated the same way. Better to skip a real update and say so
+than to delete work; `--force` takes the skill's copy and discards yours.
+
+`DIVERGED` is a prompt, not an error to silence. A managed file you needed to
+edit is a fix the skill is missing — push it upstream, and every prototype gets
+it. That is the whole point of the list.
 
 Run it when you pull the skill, and before a port. It is the only thing that
 closes the loop between "fixes flow up" and the apps already out there.
