@@ -379,11 +379,27 @@ for (const file of srcFiles()) {
 }
 
 // Text-level residue: imports, strings, and anything the AST scan cannot see.
+//
+// COMMENTS ARE REMOVED FIRST, and that is not a convenience. A codebase that
+// explains its decisions in prose WILL name the harness in a comment — "the
+// strip unwraps the <Mark> inside these at port time" is a true and useful
+// sentence to leave behind — and a residue report that fires on prose teaches
+// the reader to ignore residue reports. Measured on a real strip: two false
+// positives, both comments, both correct to keep, against zero real ones.
+//
+// The rule this script's own doc states — a verification failure means revert
+// and fix the codemod, NEVER hand-patch the output — only holds while a failure
+// means something. A check that cries wolf quietly rewrites that rule into
+// "look at it, then hand-patch anyway", which is how a codemod's guarantee is
+// lost without anyone deciding to lose it.
+const withoutComments = (text) =>
+	text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
+
 const residue = [];
 const NEEDLES = ["<Mark", "</Mark", "<Walkthrough", "</Walkthrough", "fixtures/script", "from './walkthrough", "from '../walkthrough", 'from "./walkthrough', 'from "../walkthrough', "import('./walkthrough", 'import("./walkthrough'];
 if (STRIP_STATES) NEEDLES.push("StatesPage");
 for (const file of srcFiles()) {
-	const text = readFileSync(join(ROOT, file), "utf8");
+	const text = withoutComments(readFileSync(join(ROOT, file), "utf8"));
 	for (const n of NEEDLES) if (text.includes(n)) residue.push(`${file}: contains "${n}"`);
 }
 // A spec that still addresses the DRAWER is a spec that needed the marker and
