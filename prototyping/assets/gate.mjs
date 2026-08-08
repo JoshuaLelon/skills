@@ -482,8 +482,7 @@ for (const top of ['src', 'e2e']) {
 						if (!allowed('unregistered-fx', lines, i))
 							fxDeclared.push({ file, at: i + 1, name: m[1] })
 				})
-			if (/^src\//.test(file))
-				for (const m of code.matchAll(FX_REGISTERED)) fxRegistered.add(m[1])
+			if (/^src\//.test(file)) for (const m of code.matchAll(FX_REGISTERED)) fxRegistered.add(m[1])
 		}
 
 		// Trip-wire tallies. Unit tests are excluded from the store's line count:

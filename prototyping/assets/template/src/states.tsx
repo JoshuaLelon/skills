@@ -69,7 +69,12 @@ function groupsOf(file: string, mod: Record<string, unknown>) {
 		.filter(([k, v]) => (k === 'STATES' || k.endsWith('_STATES')) && Array.isArray(v))
 		.map(([key, states]) => {
 			const name = key === 'STATES' ? file : key.slice(0, -'_STATES'.length)
-			return { key, name: pascal(name), states: states as StateDef[], Comp: pickComponent(name, mod) }
+			return {
+				key,
+				name: pascal(name),
+				states: states as StateDef[],
+				Comp: pickComponent(name, mod),
+			}
 		})
 }
 
