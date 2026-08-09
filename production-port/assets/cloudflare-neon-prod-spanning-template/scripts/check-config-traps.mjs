@@ -5,6 +5,22 @@
 //
 // Every assertion prints the trap it encodes, so the failure teaches what the
 // prose used to.
+//
+// ── WHO OWNS THIS FILE ───────────────────────────────────────────────────────
+// The canonical copy is the SKILL's:
+//   ~/.claude/skills/production-port/assets/
+//     cloudflare-neon-prod-spanning-template/scripts/check-config-traps.mjs
+// Every app gets a copy of it, by one of two paths, both one-way:
+//   · scaffold-prod.sh copies this file into <app>/scripts/ (it names this
+//     directory as the SINGLE canonical source for the scripts it installs);
+//   · a full-template start is `git archive | tar -x` of the template.
+// FIX BUGS HERE, NOT IN AN APP. There is no path back. `export-stack.mjs`
+// carries only dependency VERSIONS out of a proven repo — it reads
+// package.json's dependencies/devDependencies and nothing else — so no script
+// body ever travels app → skill. `check-parity.mjs` does not cover this file
+// either; it guards the src/ components and gate.mjs shared with the
+// prototyping skill. An edit made in an app is therefore lost at the next
+// port and inherited by nobody.
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -153,13 +169,80 @@ if (hasWrangler) {
 		)
 }
 
+// Read once — trap 5 subtracts the binding names declared here, and trap 6
+// parses the rest of it.
+const wranglerRaw = read('wrangler.jsonc') ?? read('wrangler.json')
+// JSONC comments, stripped. A COMMENTED-OUT binding is not a binding, and this
+// matters twice over: pantogen's `"ai": { "binding": "AI" }` is commented out
+// awaiting a deploy, so reading the raw text harvests a phantom `AI` that would
+// silently suppress a real variable of that name.
+const wranglerCode = (wranglerRaw ?? '')
+	.replace(/\/\*[\s\S]*?\*\//g, '')
+	.replace(/^\s*\/\/.*$/gm, '')
+
 // 5. The manifest rule: every env var the app reads is listed in
 // .dev.vars.example — a var missing there is one a fresh checkout cannot
 // discover it needs.
+//
+// THREE ARRIVAL SHAPES, because config reaches a Workers app by three routes
+// and this rule used to see only the first:
+//   1. `process.env.X` / `import.meta.env.X`   — the Node/Vite shape
+//   2. `env.X` in workers/** and *.server.ts(x) — the entry the runtime hands
+//      `env` to, and the server-only modules (the db and model doors)
+//   3. `env.X` in any file that BINDS env      — `(env: SomeEnv)`, or
+//      `const { env } = app(context)`
+// A Worker is HANDED its configuration on an injected `env` object, so shapes 2
+// and 3 are how a Workers app actually reads config, and matching only shape 1
+// made this rule VACUOUS. Measured, not supposed: on the app this was found in,
+// the old scan collected ZERO variables while seven were read off `env` — every
+// hit under src/ and workers/ was `import.meta.env.DEV` or `.MODE`, both already
+// in BUILTINS. A variable could be read everywhere, listed nowhere, and
+// config:traps stayed green.
+//
+// Shape 3 is not covered by shape 2 and is not decoration. `env` is far too
+// common an identifier to scan for in every file, so a path glob is the cheap
+// bound — but route modules read config through `app(context)` and are not
+// server-suffixed. Proven by planting one undeclared read in a route module:
+// with the bind test it fires, with the path glob alone it is silent.
+//
+// BINDINGS ARE NOT VARIABLES. `env.HYPERDRIVE` is a wrangler binding and must
+// NEVER appear in .dev.vars.example, so binding names are read out of the config
+// that declares them and subtracted. Without it this fires on the first correct
+// file it opens.
+//
+// COMMENTS ARE MASKED FIRST, by the same line rule scripts/gate.mjs uses: a line
+// is a comment only when it STARTS one, so a string containing `//` is never
+// mistaken for one and the scan errs toward reading too much rather than too
+// little. Prose explaining `env.AI.run(...)` is prose; a check that reports a
+// JSDoc as a missing variable is one people teach themselves to ignore.
 const example = read('.dev.vars.example')
 if (example) {
 	const declared = new Set([...example.matchAll(/^([A-Z][A-Z0-9_]+)=/gm)].map((m) => m[1]))
 	const BUILTINS = new Set(['DEV', 'PROD', 'MODE', 'SSR', 'BASE_URL', 'NODE_ENV', 'CI'])
+	const BINDINGS = new Set(
+		[...wranglerCode.matchAll(/"binding"\s*:\s*"([A-Za-z_]\w*)"/g)].map((m) => m[1]),
+	)
+	// Config arrives on `env` here — as a typed parameter, or as a destructure.
+	const BINDS_ENV = /\benv\s*:\s*\w*Env\b|\{[^}\n]*\benv\b[^}\n]*\}\s*=/
+	const codeOf = (text) => {
+		let inBlock = false
+		return text
+			.split('\n')
+			.map((raw) => {
+				const t = raw.trim()
+				if (inBlock) {
+					if (t.includes('*/')) inBlock = false
+					return ''
+				}
+				if (t.startsWith('//')) return ''
+				if (t.startsWith('/*') || t.startsWith('{/*')) {
+					if (!t.includes('*/')) inBlock = true
+					return ''
+				}
+				return raw
+			})
+			.join('\n')
+	}
 	const used = new Set()
 	const scan = (dir) => {
 		let names = []
@@ -179,10 +262,14 @@ if (example) {
 				/* file */
 			}
 			if (!/\.(ts|tsx|mjs)$/.test(n)) continue
-			for (const m of (read(p) ?? '').matchAll(
-				/(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]+)/g,
-			))
+			const src = codeOf(read(p) ?? '')
+			// Shape 1 — anywhere.
+			for (const m of src.matchAll(/(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]+)/g))
 				if (!BUILTINS.has(m[1])) used.add(m[1])
+			// Shapes 2 and 3 — only where configuration genuinely arrives.
+			if (!/^workers\//.test(p) && !/\.server\.tsx?$/.test(n) && !BINDS_ENV.test(src)) continue
+			for (const m of src.matchAll(/\benv\.([A-Z][A-Z0-9_]+)/g))
+				if (!BUILTINS.has(m[1]) && !BINDINGS.has(m[1])) used.add(m[1])
 		}
 	}
 	scan('src')
@@ -221,7 +308,6 @@ const BINDING_KEYS = [
 	'secrets_store_secrets',
 	'vpc_services',
 ]
-const wranglerRaw = read('wrangler.jsonc') ?? read('wrangler.json')
 if (wranglerRaw) {
 	// ADR-0009: the platform is the logging backend — capture must be on.
 	if (!/"observability"/.test(wranglerRaw))
@@ -242,11 +328,7 @@ if (wranglerRaw) {
 			'wrangler: observability has no "traces" key — decide it explicitly ({"enabled": true} or {"enabled": false}); spans are billed per event once the free period ends, so silence here becomes either a blind incident or a surprise bill — current figures in docs/reference/cloudflare-primitives.md (ADR-0016)',
 		)
 	try {
-		const jsonc = wranglerRaw
-			.replace(/\/\*[\s\S]*?\*\//g, '')
-			.replace(/^\s*\/\/.*$/gm, '')
-			.replace(/,(\s*[}\]])/g, '$1')
-		const w = JSON.parse(jsonc)
+		const w = JSON.parse(wranglerCode.replace(/,(\s*[}\]])/g, '$1'))
 		for (const [envName, env] of Object.entries(w.env ?? {})) {
 			if (env.compatibility_date)
 				problems.push(

@@ -2,26 +2,65 @@
 # rules themselves are proven live by `npm run verify:gates` (a rule that
 # cannot fail is decoration). Staged-file scoping where the tool supports it;
 # whole-tree where it doesn't.
+#
+# TWO COPIES, BOTH LIVE, AND NOTHING CHECKS THEM. This file and
+# assets/configs/lefthook.yml must stay identical: a full-template start copies
+# THIS one, and scaffold-prod.sh copies the configs/ one onto an existing repo.
+# check-parity.mjs does not cover the pair. Edit both, in the same commit.
+#
+# WHY THE FLOW SUITE RUNS ALONE.
+# This hook used to be one flat `parallel: true` list, so `npm run gate` (typegen
+# + gate.mjs + tsc -b) and eight other processes ran BESIDE `playwright test` and
+# its browser workers. On a 25-flow suite that ended in a SIGKILL at test 16 —
+# not a test failure, a memory kill. The cost of that is not one bad run: a
+# passing tree cannot be committed, so people learn `--no-verify`, and that skips
+# every rule here, not just the flows.
+#
+# So the hook is now two stages, `piped: true` so a failed stage stops the next:
+#   1. `static` — every cheap check, still fully parallel. They are seconds of
+#      CPU and little memory, and running them together is the whole reason the
+#      hook is bearable.
+#   2. `flows`  — the browser suite, on its own, with the machine to itself.
+# Measured on lefthook 2.1.10: the group runs concurrently, a failure inside it
+# skips `flows` and exits 1, and `{staged_files}` still expands inside a group.
+#
+# The stage order also buys the cheap failure first. A biome error now costs
+# seconds instead of a full suite, because `piped` never reaches stage 2.
+#
+# NO WORKER CAP HERE ON PURPOSE. Playwright already picks workers from the host
+# (half the cores locally, 1 on CI). A constant in this shared file would starve
+# a big machine and still overcommit a small one. If a project still runs out of
+# memory with the suite alone, set `workers` in ITS playwright.config.ts, where
+# the number can match the hardware.
+#
+# THE SUITE STAYS IN pre-commit. Moving it to pre-push would make the hook fast,
+# and would also let a broken locked flow reach the branch — the next person to
+# pull finds out. pre-push is skipped by the same `--no-verify` anyway, so it
+# trades the guarantee away and buys no protection back.
 pre-commit:
-  parallel: true
-  commands:
-    biome:
-      glob: "*.{ts,tsx,json}"
-      run: npx biome check --no-errors-on-unmatched {staged_files}
-    oxlint:
-      glob: "*.{ts,tsx}"
-      run: npx oxlint {staged_files}
-    ast-grep:
-      glob: "*.{ts,tsx}"
-      run: npx ast-grep scan
-    architecture:
-      glob: "*.{ts,tsx}"
-      run: npx depcruise src --config .dependency-cruiser.cjs
-    prototype-gate:
-      run: npm run gate
-    docs:
-      run: node scripts/docs-check.mjs --staged
-    config-traps:
-      run: node scripts/check-config-traps.mjs
-    flows:
+  piped: true
+  jobs:
+    - name: static
+      group:
+        parallel: true
+        jobs:
+          - name: biome
+            glob: "*.{ts,tsx,json}"
+            run: npx biome check --no-errors-on-unmatched {staged_files}
+          - name: oxlint
+            glob: "*.{ts,tsx}"
+            run: npx oxlint {staged_files}
+          - name: ast-grep
+            glob: "*.{ts,tsx}"
+            run: npx ast-grep scan
+          - name: architecture
+            glob: "*.{ts,tsx}"
+            run: npx depcruise src --config .dependency-cruiser.cjs
+          - name: prototype-gate
+            run: npm run gate
+          - name: docs
+            run: node scripts/docs-check.mjs --staged
+          - name: config-traps
+            run: node scripts/check-config-traps.mjs
+    - name: flows
       run: npx playwright test --reporter=line --pass-with-no-tests
