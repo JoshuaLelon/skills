@@ -1,8 +1,20 @@
 #!/usr/bin/env node
 // The prototyping gate. Zero dependencies — node walks src/ and e2e/ and fails
-// on violations of the standards in the prototyping skill. Copied verbatim from
-// the skill's assets/ at scaffold time; do not hand-edit rules per project —
-// improve the skill's copy instead, so every prototype inherits the fix.
+// on violations of the standards in the prototyping skill.
+//
+// ONE LOGICAL FILE, THREE HOMES. The canonical copies live at
+// `prototyping/assets/gate.mjs` and
+// `production-port/assets/cloudflare-neon-prod-spanning-template/scripts/gate.mjs`,
+// and they must stay BYTE-IDENTICAL — a prototype and its port enforce the same
+// standards or the port is not a port. A scaffolded app gets a third copy; do
+// not hand-edit rules there. Improve BOTH skill copies instead, so every
+// prototype and every port inherits the fix.
+//
+// Every rule here owes a control in the template's `scripts/verify-gates.mjs`:
+// a planted violation proving it fires, and — for any rule that could fire on
+// correct code — a planted valid input proving it stays silent. A rule that
+// cannot fail is decoration; a rule that fires on correct code gets a
+// `gate:allow` and dies.
 //
 // Escape hatch: put `gate:allow <rule-id>` in a comment on the offending line
 // or the line above it. Every exception is then greppable and deliberate.
@@ -74,6 +86,7 @@ const LINE_RULES = [
 	},
 	{
 		id: 'seam-leak',
+		valueImportsOnly: true,
 		where: /^src\/(components|screens)\//,
 		re: /from\s+["'][^"']*fixtures\/entities/,
 		msg: 'the view reads data through accessors, never the fixture; the accessor becomes the loader (skill: fixture rules)',
@@ -85,6 +98,7 @@ const LINE_RULES = [
 		// import is the checkable proxy: a case can only read a fixture its own
 		// file pulled into scope.
 		id: 'fixture-in-reducer',
+		valueImportsOnly: true,
 		where: /^src\/store\//,
 		when: (text) => /^\s*case\s+["']/m.test(text),
 		re: /^(?!.*\bimport\s+type\b).*from\s+["'][^"']*fixtures\/entities/,
@@ -96,6 +110,43 @@ const LINE_RULES = [
 		unless: /^src\/walkthrough\.tsx$/,
 		re: /from\s+["'][^"']*fixtures\/script/,
 		msg: 'only the walkthrough may import fixtures/script — strip-harness.mjs DELETES that directory, so product code importing it stops compiling at the port; a stand-in for a call production will make belongs in fixtures/model/ (skill: fixture rules)',
+	},
+	{
+		// THE SEAM ITSELF, not the provider behind it.
+		//
+		// `ast-grep:one-door-model` refuses an import of the model SDK outside
+		// `src/lib/ai/**`, and that is a real rule — it stops provider DTOs and
+		// stop-reasons leaking into features. But it tests PROVIDER LEAKAGE, and
+		// door usage is a different claim: `fixtures/model/` imports no SDK, so a
+		// screen can call the stand-in directly, resolve in the browser, never
+		// cross the door and never reach a server, with that rule green the whole
+		// time. Measured on one app at the port: twelve capabilities, one caller
+		// through the door, and the docs read as though the door was live.
+		//
+		// The skill already states this rule in prose — "the only VALUE imports of
+		// `fixtures/model/` are in the registerFx handlers" — and a standard held
+		// in prose is the state that produced every failure verify-gates exists
+		// for. So it is a rule now.
+		id: 'model-door',
+		valueImportsOnly: true,
+		where: /^src\//,
+		// The handler layer is named by WHAT IT DOES, not by where it sits: a file
+		// that registers an fx handler IS where a call belongs, whether the app
+		// calls it `fx.ts`, `effects.ts` or something else. Naming a path here
+		// instead would point the exemption at a file most apps do not have —
+		// which is exactly how `script-import` above ends up enforcing nothing
+		// once `src/walkthrough.tsx` is stripped.
+		when: (text) => !/\bregisterFx\s*\(/.test(text),
+		// `fixtures/` may reach its own stand-ins. `lib/ai/` is the production
+		// door and may hold the fallback the stand-in becomes. A TEST MAY IMPORT
+		// THE STAND-IN — it is frequently the thing under test, and a rule about
+		// what SHIPS has nothing to say about a file that does not.
+		unless: /^src\/(fixtures\/|lib\/ai\/)|\.test\.tsx?$/,
+		// A VALUE import only — `import type` is erased and carries no call, the
+		// same distinction `fixture-in-reducer` above draws. `valueImportsOnly`
+		// extends that across a MULTI-LINE type import; see typeImportLines below.
+		re: /^(?!.*\bimport\s+type\b).*from\s+["'][^"']*fixtures\/model\//,
+		msg: 'a model capability is reached through the fx handler that stands in for the real call, never from a screen, a component or a reducer — fixtures/model/ is a stand-in for a call production WILL make, so a value import outside the handler ships the stand-in and the port has to rewrite the call site instead of the body. Type imports stay anywhere: they are erased, and the types ARE the call contract (skill: fixture rules)',
 	},
 	{
 		id: 'wall-clock-in-view',
@@ -437,6 +488,33 @@ function* walk(dir, rel = '') {
 const allowed = (id, lines, i) =>
 	lines[i].includes(`gate:allow ${id}`) || (i > 0 && lines[i - 1].includes(`gate:allow ${id}`))
 
+/**
+ * Every line index covered by an `import type … from …`, MULTI-LINE INCLUDED.
+ *
+ * The rules above match one line at a time, so a type import spread over six
+ * lines shows the matcher only its `} from '…'` tail — with the `type` keyword
+ * five lines up, out of view. Every import-shaped rule here writes
+ * `^(?!.*\bimport\s+type\b)` to mean "value imports only", and every one of
+ * them was therefore reporting multi-line type imports as violations.
+ *
+ * Found by planting a control for `model-door`: it flagged two innocent files
+ * that import types across several lines and import no value at all.
+ * `fixture-in-reducer` and `seam-leak` have the same hole and had simply never
+ * met a multi-line type import in a file they watch.
+ *
+ * A false positive is worse here than a miss: it teaches people the gate is
+ * noise, and `gate:allow` then gets used to silence correct rules.
+ */
+const typeImportLines = (text) => {
+	const out = new Set()
+	const re = /^[ \t]*import\s+type\b[\s\S]*?from\s+["'][^"']*["']/gm
+	for (const m of text.matchAll(re)) {
+		const first = text.slice(0, m.index).split('\n').length - 1
+		for (let k = 0; k < m[0].split('\n').length; k++) out.add(first + k)
+	}
+	return out
+}
+
 const violations = []
 const warnings = []
 let checked = 0
@@ -447,12 +525,16 @@ for (const top of ['src', 'e2e']) {
 		checked++
 		const text = readFileSync(join(ROOT, file), 'utf8')
 		const lines = text.split('\n')
+		const typeLines = typeImportLines(text)
 
 		for (const rule of LINE_RULES) {
 			if (!rule.where.test(file)) continue
 			if (rule.unless?.test(file)) continue
 			if (rule.when && !rule.when(text)) continue
 			lines.forEach((line, i) => {
+				// A rule that says "value imports only" means it across the whole
+				// statement, not just the line its `from` happens to land on.
+				if (rule.valueImportsOnly && typeLines.has(i)) return
 				if (rule.re.test(line) && !allowed(rule.id, lines, i))
 					violations.push(`${file}:${i + 1}  [${rule.id}] ${rule.msg}`)
 			})

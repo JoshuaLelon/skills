@@ -245,6 +245,88 @@ const MUTATIONS = [
 		cmd: 'node scripts/check-config-traps.mjs',
 		expect: 'thresholds',
 	},
+	// -- trap 5, the manifest rule: five controls ------------------------------
+	// The rule: every config variable the app reads is listed in
+	// `.dev.vars.example`, so a fresh checkout can discover what it needs.
+	//
+	// It had ONE control, and that control proved almost nothing. Config does not
+	// arrive as `process.env` in a Worker — it arrives on the injected `env`
+	// object — so a scan that knows only `process.env.X` / `import.meta.env.X`
+	// collects nothing from a Worker app and reports clean. Measured on one tree
+	// with the scan instrumented to print its own result: SEVEN variables read,
+	// ZERO collected, and undeclared reads planted in all three arrival shapes
+	// left it green. A trap alive but vacuous is the failure this whole harness
+	// exists for, so the arrival shapes get one control each.
+	//
+	// Three arrival shapes, three positives:
+	//   1. `process.env.X` / `import.meta.env.X` — anywhere.
+	//   2. `env.X` inside `workers/**` and `*.server.ts(x)` — the Worker entry and
+	//      the server-only doors, where `env` is a parameter.
+	//   3. `env.X` in any file that BINDS env — a route module does
+	//      `const { env } = app(context)` and is not a `*.server.ts`, so a scan
+	//      bounded to shape 2 misses every loader and action in the app.
+	//
+	// Two negatives, because widening a scan is exactly how it starts firing on
+	// correct code, and both failure modes have a name:
+	//   4. a wrangler BINDING is not a variable — `env.HYPERDRIVE` is a binding
+	//      declared in wrangler.jsonc and belongs in no `.dev.vars.example`.
+	//   5. a COMMENT that merely mentions `env.AI.run(...)` reads no config; this
+	//      codebase documents itself in comments, so a scan that does not mask
+	//      them fires on its own JSDoc.
+	{
+		gate: 'config-traps: trap 5 — an undeclared process.env read is refused',
+		files: { 'src/__mut_env_process__.ts': 'export const k = process.env.MUT_PROCESS_VAR\n' },
+		cmd: 'node scripts/check-config-traps.mjs',
+		expect: 'MUT_PROCESS_VAR is read by the app',
+	},
+	{
+		gate: 'config-traps: trap 5 — an undeclared env.X read in workers/** is refused',
+		files: {
+			'workers/__mut_env_worker__.ts':
+				'export const read = (env: Record<string, string>) => env.MUT_WORKER_VAR\n',
+		},
+		cmd: 'node scripts/check-config-traps.mjs',
+		expect: 'MUT_WORKER_VAR is read by the app',
+	},
+	{
+		// The shape that matters most and is easiest to miss: a route module binds
+		// `env` off the request context and is NOT a `*.server.ts`. Every loader and
+		// action in the app looks like this.
+		gate: 'config-traps: trap 5 — an undeclared env.X read in a route module is refused',
+		files: {
+			'src/screens/__mut_env_route__.ts':
+				"import { app } from '../lib/context'\nexport const loader = ({ context }: { context: never }) => {\n\tconst { env } = app(context)\n\treturn env.MUT_ROUTE_VAR\n}\n",
+		},
+		cmd: 'node scripts/check-config-traps.mjs',
+		expect: 'MUT_ROUTE_VAR is read by the app',
+	},
+	{
+		// A binding is not a variable. `HYPERDRIVE` is declared in wrangler.jsonc
+		// and never in `.dev.vars.example`, so a scan that does not subtract binding
+		// names refuses the app's own database access on every run — and the fix
+		// someone in a hurry reaches for is to delete the trap.
+		gate: 'config-traps: trap 5 — a wrangler binding name is not a missing var (negative control)',
+		files: {
+			'src/db/__mut_env_binding__.server.ts':
+				'export const conn = (env: Env) => env.HYPERDRIVE.connectionString\n',
+		},
+		cmd: 'node scripts/check-config-traps.mjs',
+		expectClean: true,
+	},
+	{
+		// A comment reads no config. This is the shape the scan meets first,
+		// because the doors here explain themselves in JSDoc that names the very
+		// bindings they describe. BOTH masking branches are planted — a block
+		// comment and a standalone line comment — because they are separate code
+		// paths and a probe that exercises one would pass while the other fires.
+		gate: 'config-traps: trap 5 — a comment mentioning env.X is not a read (negative control)',
+		files: {
+			'src/lib/__mut_env_comment__.server.ts':
+				'/**\n * The door. Calls `env.MUT_BLOCK_VAR` — documented here, read nowhere.\n */\n// env.MUT_LINE_VAR is likewise only prose.\nexport const noop = () => null\n',
+		},
+		cmd: 'node scripts/check-config-traps.mjs',
+		expectClean: true,
+	},
 	{
 		gate: 'config-traps: observability block must exist',
 		files: {},
@@ -605,6 +687,71 @@ const MUTATIONS = [
 			{ 'src/fixtures/entities/__mut_markup__.ts': "export const blurb = '<p>markup</p>'\n" },
 		],
 		[
+			// The rule's `when` narrows it to files that hold reducer CASES, so the
+			// probe needs both halves: a fixture row in scope AND a case. The case is
+			// named 'note/save' so `bad-action-name` stays silent — a control that also
+			// trips a neighbouring rule proves the neighbour, and this harness's
+			// substring match on the output would never say so.
+			'fixture-in-reducer',
+			{
+				'src/store/__mut_fixture_reducer__.ts':
+					"import { NOTES_SEED } from '../fixtures/entities/notes'\nexport const r = (t: string) => {\n\tswitch (t) {\n\t\tcase 'note/save':\n\t\t\treturn NOTES_SEED.length\n\t}\n}\n",
+			},
+		],
+		[
+			// The seam being bypassed, which is the thing `ast-grep:one-door-model`
+			// cannot see: no SDK import anywhere, just a screen reaching the stand-in.
+			// It must land outside the exemptions (`fixtures/`, `lib/ai/`, `*.test.ts`,
+			// and any file that registers an fx handler) or the rule is RIGHT to stay
+			// silent — a probe planted in one of them would report a dead gate that is
+			// alive. Paired with two negative controls below.
+			'model-door',
+			{
+				'src/screens/__mut_model_door__.tsx':
+					"import { A_BEAT } from '../fixtures/model/latency'\nexport const M = () => A_BEAT\n",
+			},
+		],
+		[
+			// `model-door`'s prototype-side twin: the harness directory the port
+			// DELETES. It is live only while `src/walkthrough.tsx` and
+			// `src/fixtures/script/` exist — the PROTOTYPING template, not this one,
+			// where the vacuity report below names it. The probe proves the rule fires
+			// either way: the gate reads text and never resolves the import.
+			'script-import',
+			{
+				'src/screens/__mut_script__.tsx':
+					"import { NOTES } from '../fixtures/script/notes'\nexport const M = () => NOTES\n",
+			},
+		],
+		[
+			// `new Date()` with no argument — the wall clock. The paired control below
+			// plants `new Date(iso)`, which the rule's own message promises is fine.
+			'wall-clock-in-view',
+			{ 'src/screens/__mut_clock__.tsx': 'export const M = () => new Date().toISOString()\n' },
+		],
+		[
+			// A TAG rule, so the probe must be markup rather than a line: the check
+			// slices each `<section`/`<form` from `<` to its first `>` and looks for an
+			// accessible name. Comments are masked before that scan, so the tag has to
+			// be real code — a `<section>` written in a comment proves nothing.
+			'unnamed-region',
+			{ 'src/__mut_region__.tsx': 'export const M = () => <section>x</section>\n' },
+		],
+		[
+			// NOT discoverable by the pre-pass — see UNKEYED_GATE_IDS below. The
+			// cross-file rule: a case names an effect, nothing registers it. The name
+			// is deliberately one no handler in src/ could claim.
+			'unregistered-fx',
+			{ 'src/store/__mut_fx__.ts': "export const c = () => ({ fx: 'mut-no-handler' })\n" },
+		],
+		[
+			// NOT discoverable by the pre-pass either. 260 code lines in `src/` is over
+			// the module tier's cap of 250; the lines are code, because the rule counts
+			// only code and a comment-shaped probe would pass.
+			'file-size',
+			{ 'src/__mut_size__.ts': 'export const x = 1\n'.repeat(260) },
+		],
+		[
 			'seam-leak',
 			{
 				'src/screens/__mut_seam__.tsx':
@@ -690,6 +837,59 @@ const MUTATIONS = [
 		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src/screens" "$d/e2e"; cp scripts/gate.mjs "$d/scripts/"; printf '// gate:allow inline-style\\nexport const M = () => <div style={{ color: "red" }}>x</div>\\n' > "$d/src/screens/probe.tsx"; printf 'export const helper = 1\\n' > "$d/e2e/probe.ts"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
 		expectClean: true,
 	},
+	// -- the other half of four rules that ban a shape correct code also uses ---
+	// Each of these is hermetic: asserting exit 0 against the LIVE tree would go
+	// red for whatever violation someone else is mid-way through fixing, and the
+	// control would then be reporting on the working tree instead of the rule.
+	// Each one's positive twin is in the list above, so none of them is an empty
+	// probe passing for want of anything to match.
+	{
+		// `wall-clock-in-view` bans a constructor the legitimate formatting path
+		// also uses, so a positive mutation alone cannot tell "bans the wall clock"
+		// from "bans dates". The rule's own message promises `new Date(iso)` is
+		// fine; this is that promise, executed.
+		gate: 'prototype gate: `new Date(iso)` in a view is not wall-clock-in-view (negative control)',
+		files: {},
+		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src/screens"; cp scripts/gate.mjs "$d/scripts/"; printf 'export const M = (iso: string) => new Date(iso).toISOString()\\n' > "$d/src/screens/probe.tsx"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
+		expectClean: true,
+	},
+	{
+		// Why `model-door` carries `valueImportsOnly`. An `import type` is erased
+		// and carries no call, so it does not ship the stand-in — and a MULTI-LINE
+		// one shows the line matcher only its `} from '…'` tail, with the `type`
+		// keyword out of view. That is not hypothetical: planting the positive
+		// control above is what surfaced it, and it flagged two innocent files
+		// before `typeImportLines` existed. `seam-leak` and `fixture-in-reducer`
+		// write the same `^(?!.*\bimport\s+type\b)` and had the same hole; they had
+		// simply never met a multi-line type import in a file they watch.
+		gate: 'prototype gate: a multi-line `import type` from fixtures/model is not model-door (negative control)',
+		files: {},
+		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src/screens"; cp scripts/gate.mjs "$d/scripts/"; printf 'import type {\\n\\tAnswer,\\n\\tRequest,\\n} from "../fixtures/model/chat"\\nexport const M = (a: Answer, r: Request) => [a, r]\\n' > "$d/src/screens/probe.tsx"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
+		expectClean: true,
+	},
+	{
+		// The exemption itself. `model-door` names the handler layer by WHAT IT
+		// DOES — a file that registers an fx handler — rather than by a path, so
+		// that it keeps working in an app that calls its effects file something
+		// else. If that predicate broke, the rule would fire on the ONE call site
+		// the doctrine requires, and the cheapest fix would be a `gate:allow` that
+		// disables it everywhere in the file.
+		gate: 'prototype gate: an fx handler MAY value-import the stand-in (negative control)',
+		files: {},
+		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src"; cp scripts/gate.mjs "$d/scripts/"; printf 'import { think } from "./fixtures/model/latency"\\nimport { registerFx } from "./host"\\nregisterFx("beat", () => { void think(1) })\\n' > "$d/src/fx.ts"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
+		expectClean: true,
+	},
+	{
+		// `unnamed-region` fires on the ABSENCE of an attribute, which is the shape
+		// most likely to fire on everything: any slicing bug in `tagOffences` — an
+		// off-by-one on the closing `>`, a regex that stops at the first attribute
+		// — flags every correctly-named region in the app, and the positive control
+		// above passes throughout. Both spellings the rule accepts are planted.
+		gate: 'prototype gate: a named <section> is not unnamed-region (negative control)',
+		files: {},
+		cmd: `d=$(mktemp -d); mkdir -p "$d/scripts" "$d/src"; cp scripts/gate.mjs "$d/scripts/"; printf 'export const M = () => (\\n\\t<div>\\n\\t\\t<section aria-label="Today">x</section>\\n\\t\\t<form aria-labelledby="h">y</form>\\n\\t</div>\\n)\\n' > "$d/src/probe.tsx"; cd "$d" && node scripts/gate.mjs; rc=$?; cd /; rm -rf "$d"; exit $rc`,
+		expectClean: true,
+	},
 ]
 
 // -- Coverage pre-pass: every rule must have a mutation ----------------------
@@ -738,6 +938,32 @@ let failed = 0
 				"✗ UNREADABLE GATE  scripts/gate.mjs: parsed 0 rule ids, so no gate rule can be required to have a mutation. Keep each rule's `id:` a quoted single-line field.",
 			)
 			failed++
+		}
+		// AFTER the zero-ids guard, so pushing these can never mask a gate whose
+		// rule objects have become unreadable.
+		//
+		// Two gate rules are not `{ id: … }` objects and cannot be read out of the
+		// file: `unregistered-fx` compares two halves collected over the whole tree,
+		// and `file-size` is a per-directory table. Both FAIL A BUILD, both write
+		// their id as a literal into the violation string, and both were invisible
+		// to this pre-pass — it demanded proofs for the keyed rules while the gate
+		// had two more. Deriving them from the text is not safe: gate.mjs also
+		// contains `[i]`, `[id]` and `[xy]`, which read as ids to any bracket regex.
+		// So they are named by hand, and the naming is itself checked.
+		const UNKEYED_GATE_IDS = ['unregistered-fx', 'file-size']
+		for (const id of UNKEYED_GATE_IDS) {
+			// A name that no longer appears in gate.mjs means the rule was renamed or
+			// removed and this list rotted. Say so, rather than go on demanding a
+			// control for a rule that is not there — the quiet version of that is a
+			// mutation nobody can delete and nobody can explain.
+			if (existsSync(p) && !readFileSync(p, 'utf8').includes(`[${id}]`)) {
+				console.error(
+					`✗ STALE LIST  UNKEYED_GATE_IDS names '${id}', which no longer appears in scripts/gate.mjs. Fix the list, and delete its mutation if the rule is gone.`,
+				)
+				failed++
+				continue
+			}
+			gateIds.push(id)
 		}
 	}
 	const gateCovered = new Set(
