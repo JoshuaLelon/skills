@@ -26,6 +26,17 @@ const PAIRS = [
 	// which is what made every port hand-write the conversion.
 	["prototyping/assets/template/src/fixtures/clock.ts", "production-port/assets/cloudflare-neon-prod-spanning-template/src/fixtures/clock.ts"],
 	["prototyping/assets/gate.mjs", "production-port/assets/cloudflare-neon-prod-spanning-template/scripts/gate.mjs"],
+	// BOTH LEFTHOOK COPIES, and they HAD already drifted: `configs/` ran
+	// `docs-check.mjs` bare where the template ran it `--staged`, so one of the
+	// two graded the worktree instead of the commit being made. Nothing caught
+	// it, because nothing compared them — the same silence that let a `gate.mjs`
+	// drift 83 lines in one app while its header still claimed it was verbatim.
+	// Unlike the pairs above, these are not a shared RUNTIME; they are one
+	// decision about what a commit must survive, stored twice.
+	[
+		"production-port/assets/configs/lefthook.yml",
+		"production-port/assets/cloudflare-neon-prod-spanning-template/lefthook.yml",
+	],
 ];
 
 // Some files must not be IDENTICAL — they must share a PROPERTY. Both skills'

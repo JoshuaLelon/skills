@@ -307,6 +307,7 @@ inherits it. Its rules, each enforcing a standard defined elsewhere in this skil
 | `fixture-in-reducer` | a file with reducer cases has no fixture rows in scope |
 | `unregistered-fx` | every `fx: '<name>'` a case emits has a `registerFx('<name>'` somewhere in `src/` |
 | `script-import` | only the walkthrough imports `fixtures/script` — the strip deletes it |
+| `model-door` | only a `registerFx` handler *value*-imports `fixtures/model` — a screen reaching past it ships the stand-in. Type imports stay anywhere: they are erased, and the types *are* the call's contract |
 | `wall-clock-in-view` | no `Date.now()` in screens/components; `now` comes from state |
 | `unnamed-region` | a `<section>`/`<form>` carries an accessible name, or it is not a landmark |
 | `raw-registry-import` | screens import your wrapped primitive, never `components/ui` |
